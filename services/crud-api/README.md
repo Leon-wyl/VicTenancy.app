@@ -1,7 +1,7 @@
 # CRUD API Service
 
-This directory holds the Phase E NestJS service that owns user-scoped application data.
-It is implemented in Step 14a.
+This directory holds the VicTenancy.app NestJS CRUD API service.
+Implemented in Step 14a; business endpoints begin in Step 15.
 
 ## Ownership
 

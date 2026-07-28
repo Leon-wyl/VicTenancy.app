@@ -1,7 +1,7 @@
 # Web Application
 
-This directory is reserved for the Phase E Next.js web application. It is not
-implemented in Step 13b.
+Next.js 15 App Router application for the VicTenancy.app full-stack chat experience.
+Implemented in Step 14a as a placeholder; full implementation begins in Step 17.
 
 ## Ownership
 
@@ -25,5 +25,5 @@ lib/          # Browser-safe clients and utilities
 tests/        # Frontend unit and end-to-end test support
 ```
 
-Do not add `package.json`, application code, or environment files here before
-Step 14a defines the local stack contract.
+Do not add business routes, Tailwind, Supabase SDK, or Agent calls before
+Step 17. See [AGENT.md](../AGENT.md) for startup instructions.
