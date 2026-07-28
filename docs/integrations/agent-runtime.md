@@ -73,7 +73,7 @@ cp .env.example .env
 # Set DEEPSEEK_API_KEY in .env
 
 # Start the ASGI server (port 8080)
-uvicorn src.api.runtime:app --host 0.0.0.0 --port 8080
+uvicorn src.api.handler:app --host 0.0.0.0 --port 8080
 ```
 
 Local endpoints:
@@ -91,10 +91,13 @@ on the invoke route. Consumer applications must sign requests with SigV4 credent
 
 1. The Agent Runtime API contract is owned by AusTenancy.ai. This document is a
    consumer reference only.
-2. The CRUD API creates `agent_jobs` records. Agent invocation is done by a worker
+2. The API creates `agent_jobs` records. Agent invocation is done by a worker
    in Step 16, not from CRUD endpoints.
 3. AWS credentials, Bedrock model access, Qdrant seed data, and FastEmbed caches
    are Agent Runtime concerns and are never placed in this repository.
+4. The future Agent Runtime adapter lives in
+   `apps/api/src/integrations/agent-runtime/`, not in web, shared packages, or
+   the Lambda handler.
 
 ## Deferred Work
 

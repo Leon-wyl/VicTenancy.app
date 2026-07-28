@@ -1,5 +1,5 @@
 {
-  "name": "victenancy-web",
+  "name": "@victenancy/web",
   "version": "0.1.0",
   "private": true,
   "description": "VicTenancy.app Phase E web application — Next.js App Router",
