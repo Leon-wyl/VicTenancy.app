@@ -108,7 +108,7 @@ Agent Runtime (external, Step 16)
 4. **Service-role is server-only** — `SUPABASE_SERVICE_ROLE_KEY` is for the API only, never the browser.
 5. **CRUD creates jobs, not Agent** — CRUD endpoints create `agent_jobs` records. Agent invocation is deferred to Step 16 and must be server-to-server.
 6. **No Agent Runtime code** — do not copy Agent source (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data) into this repository.
-7. **Local Supabase first** — Supabase Cloud project is provisioned only after local schema and migration path are validated.
+7. **Local Supabase first** — Supabase Cloud staging and production projects are provisioned in Step 14d after local schema validation passes.
 8. **Lambda boundary** — `apps/api/src/lambda.ts` is a thin adapter that reuses `src/bootstrap/`. It must not contain business logic, auth rules, or database operations.
 
 ## Project Structure

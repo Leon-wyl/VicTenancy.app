@@ -47,8 +47,8 @@ Prisma is used only for client generation (`prisma generate`). Do not use
 web application. It does not manage cloud infrastructure.
 
 `supabase/` contains non-sensitive Supabase CLI configuration. Supabase Cloud
-project provisioning is deferred until the local schema and migration path are
-validated.
+project provisioning (staging and production) is delivered in Step 14d
+via CI-driven migration promotion.
 
 Future cloud IaC belongs in `infra/aws/`. This repository does not contain
 Terraform, CDK, SAM, or Serverless Framework configurations.
