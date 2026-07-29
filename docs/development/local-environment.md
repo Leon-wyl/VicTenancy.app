@@ -9,6 +9,14 @@ required for local application development.
 Use the repository root as the working directory:
 
 ```bash
+# 1. Configure auth environment (see docs/development/local-auth-setup.md)
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.local.example apps/web/.env.local
+
+# 2. Fill in SUPABASE_PUBLISHABLE_KEY in apps/api/.env (from supabase status)
+#    and NEXT_PUBLIC_SUPABASE_ANON_KEY in apps/web/.env.local
+
 npm ci                       # Install all workspace dependencies
 supabase start               # Start local Supabase (PostgreSQL, Auth, Realtime)
 supabase db reset            # Validate schema migration
@@ -53,19 +61,23 @@ deferred to Step 16 with a separate setup documented in
 
 ## Startup Order
 
-1. `cp apps/api/.env.example apps/api/.env`
-2. `cp apps/web/.env.local.example apps/web/.env.local`
-3. `npm ci` (from root)
-4. `supabase start`
-5. `supabase db reset` (validates schema)
-6. `docker compose up --build`
+1. `cp .env.example .env`
+2. `cp apps/api/.env.example apps/api/.env`
+3. `cp apps/web/.env.local.example apps/web/.env.local`
+4. Fill in `SUPABASE_PUBLISHABLE_KEY` in `apps/api/.env` (from `supabase status`)
+5. Fill in `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `apps/web/.env.local`
+6. `npm ci` (from root)
+7. `supabase start`
+8. `supabase db reset` (validates schema + runs RLS migration)
+9. `docker compose up --build` (optional; can also run `npm run dev` for individual services)
 
 ## Individual Service Commands
 
 ```bash
 npm run dev -w @victenancy/api    # API on :3001
 npm run dev -w @victenancy/web    # Web on :3000
-npm run test -w @victenancy/api   # Jest (health + migration)
+npm run test -w @victenancy/api   # Jest unit tests (no Supabase needed)
+npm run test:integration -w @victenancy/api  # Auth integration tests (requires Supabase)
 npm run lint -w @victenancy/api   # ESLint
 npm run build -w @victenancy/web  # Next.js production build
 ```

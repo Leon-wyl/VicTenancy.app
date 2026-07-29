@@ -18,14 +18,22 @@ src/
   bootstrap/        # Nest HTTP app factory (shared by main.ts and lambda.ts)
   modules/          # Domain modules (health, conversations, messages, jobs)
     health/         #   GET /health → { "status": "ok" } (no database dependency)
+  common/
+    auth/           #   JWT guard, SupabaseAuthService, @Public(), @CurrentUser()
+      auth.module.ts
+      auth.controller.ts       # GET /auth/me
+      jwt.guard.ts             # Global Bearer token enforcement
+      supabase-auth.service.ts # JWKS + /auth/v1/user fallback
   database/         # Prisma service, database configuration
-  common/           # Guards, filters, DTO infrastructure, logging
   integrations/     # External adapters (Agent Runtime client, Step 16+)
   main.ts           # Local HTTP entry point (port 3001)
   lambda.ts         # Future Lambda handler stub
 prisma/             # Prisma schema (mirrors supabase/migrations/)
   schema.prisma
-test/               # Jest unit and integration tests
+test/
+  auth/             # Auth unit + integration tests
+  health.controller.spec.ts
+  migration.spec.ts
 ```
 
 ## Lambda Deploy Boundary

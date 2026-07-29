@@ -26,7 +26,8 @@ describe('users table', () => {
   it('has users table', async () => {
     const { rows } = await client.query(`
       SELECT EXISTS (
-        SELECT FROM information_schema.tables WHERE table_name = 'users'
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'users'
       ) AS exists;
     `);
     expect(rows[0].exists).toBe(true);
@@ -36,7 +37,9 @@ describe('users table', () => {
     const { rows } = await client.query(`
       SELECT column_name, data_type
       FROM information_schema.columns
-      WHERE table_name = 'users' AND column_name = 'id';
+      WHERE table_schema = 'public'
+        AND table_name = 'users'
+        AND column_name = 'id';
     `);
     expect(rows).toHaveLength(1);
     expect(rows[0].data_type).toBe('uuid');
@@ -46,7 +49,8 @@ describe('users table', () => {
     const { rows } = await client.query(`
       SELECT column_name, data_type
       FROM information_schema.columns
-      WHERE table_name = 'users'
+      WHERE table_schema = 'public'
+        AND table_name = 'users'
         AND column_name IN ('created_at', 'updated_at')
       ORDER BY column_name;
     `);

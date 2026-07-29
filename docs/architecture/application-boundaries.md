@@ -35,6 +35,25 @@ Runtime route.
 Service-role credentials are server-only. User-scoped operations must use the
 authenticated user identity and must not rely on a browser-supplied owner ID.
 
+## Auth Boundary (Step 14b)
+
+The NestJS API verifies Supabase JWTs via asymmetric JWKS (or a pinned
+`/auth/v1/user` fallback for legacy HS256 local environments). A global
+`JwtAuthGuard` enforces Bearer-token authentication on all routes except
+those explicitly marked `@Public()` (currently `GET /health`).
+
+`GET /auth/me` returns a minimal principal summary derived from verified token
+claims. Ownership (`principal.sub`) is always derived from the token, never
+from a request body or query parameter.
+
+Next.js middleware refreshes Supabase session cookies on every request but
+does not enforce route protection — the UX shell is deferred to Step 17.
+The OAuth callback route (`/auth/callback`) exchanges authorization codes for
+sessions and validates the redirect target to prevent open-redirect attacks.
+
+The `public.handle_new_user()` SECURITY DEFINER trigger creates a `public.users`
+row on every `auth.users` INSERT. This is the sole auto-provisioning path.
+
 ## Schema Boundary
 
 Supabase SQL migrations (`supabase/migrations/`) are the sole DDL authority.

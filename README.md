@@ -25,7 +25,7 @@ AusTenancy.ai Agent Runtime.
 | Database Client | Prisma (client generation) |
 | Schema | Supabase SQL migrations |
 | Database | Supabase PostgreSQL |
-| Auth | Supabase Auth — planned |
+| Auth | Supabase Auth — Step 14b complete |
 | Realtime | Supabase Realtime — planned |
 | Vector DB | Qdrant (local dev) |
 | Agent Runtime | AusTenancy.ai (external) |
@@ -59,12 +59,17 @@ Agent Runtime (external, Step 16)
 git clone https://github.com/Leon-wyl/VicTenancy.app.git
 cd VicTenancy.app
 
+cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
 
 npm ci
 supabase start
 supabase db reset
+
+# Fill SUPABASE_PUBLISHABLE_KEY in apps/api/.env from `supabase status`
+# Fill NEXT_PUBLIC_SUPABASE_ANON_KEY in apps/web/.env.local from `supabase status`
+
 docker compose up --build
 ```
 
@@ -80,7 +85,8 @@ docker compose up --build
 ```bash
 npm run dev -w @victenancy/api    # API on :3001
 npm run dev -w @victenancy/web    # Web on :3000
-npm run test -w @victenancy/api   # Jest tests
+npm run test -w @victenancy/api   # Unit tests
+npm run test:integration -w @victenancy/api  # Auth integration tests (needs Supabase)
 npm run lint                       # ESLint all workspaces
 npm run build                      # Build all workspaces
 ```

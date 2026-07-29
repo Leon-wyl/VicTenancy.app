@@ -16,7 +16,7 @@ This agent must follow `CONTRIBUTING.md` for all branching, commit, linting, and
 | Database Client | Prisma (client generation only) |
 | Schema Authority | Supabase SQL migrations (`supabase/migrations/`) |
 | Database | Supabase PostgreSQL (local dev) |
-| Auth | Supabase Auth — planned (Step 14b) |
+| Auth | Supabase Auth — Step 14b complete |
 | Realtime | Supabase Realtime — planned (Step 18) |
 | Vector Database | Qdrant (local dev only) |
 | Agent Runtime | AusTenancy.ai (external; integration deferred to Step 16) |
@@ -37,6 +37,7 @@ git clone https://github.com/Leon-wyl/VicTenancy.app.git
 cd VicTenancy.app
 
 # Copy environment examples
+cp .env.example .env
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.local.example apps/web/.env.local
 
@@ -46,8 +47,11 @@ npm ci
 # Start Supabase local (initializes PostgreSQL, Auth, Realtime, Studio)
 supabase start
 
-# Validate schema migration
+# Validate schema migration (includes RLS and auth trigger)
 supabase db reset
+
+# Fill in SUPABASE_PUBLISHABLE_KEY in apps/api/.env from `supabase status`
+# Fill in NEXT_PUBLIC_SUPABASE_ANON_KEY in apps/web/.env.local from `supabase status`
 
 # Start the full local stack
 docker compose up --build
@@ -70,7 +74,8 @@ docker compose up --build
 # Workspace commands (from root)
 npm run dev -w @victenancy/api    # API on :3001
 npm run dev -w @victenancy/web    # Web on :3000
-npm run test -w @victenancy/api   # Jest (health + migration)
+npm run test -w @victenancy/api   # Jest unit tests (no Supabase needed)
+npm run test:integration -w @victenancy/api  # Auth integration tests (needs Supabase)
 npm run lint                       # All workspaces
 npm run build                      # All workspaces
 
@@ -110,6 +115,8 @@ Agent Runtime (external, Step 16)
 6. **No Agent Runtime code** — do not copy Agent source (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data) into this repository.
 7. **Local Supabase first** — Supabase Cloud staging and production projects are provisioned in Step 14d after local schema validation passes.
 8. **Lambda boundary** — `apps/api/src/lambda.ts` is a thin adapter that reuses `src/bootstrap/`. It must not contain business logic, auth rules, or database operations.
+9. **JWT ownership** — API authorization always derives the authenticated user from verified JWT claims (`principal.sub`). Never from request body, query parameter, or browser-supplied identifier.
+10. **RLS + JWT defense in depth** — RLS protects direct Supabase/PostgREST access. The JWT guard protects the API path. Both enforce ownership via `auth.uid()` or verified `sub`.
 
 ## Project Structure
 
@@ -119,23 +126,42 @@ apps/
     src/
       bootstrap/               #   Nest HTTP app factory (shared by main.ts & lambda.ts)
       modules/                 #   Domain modules (health, conversations, messages, jobs)
+      common/
+        auth/                  #   JWT guard, SupabaseAuthService, @Public(), @CurrentUser()
+          auth.module.ts
+          auth.controller.ts   #     GET /auth/me
+          jwt.guard.ts         #     Global Bearer token enforcement
+          supabase-auth.service.ts  # JWKS + /auth/v1/user fallback
+          principal.ts         #     Typed Principal interface
+          public.decorator.ts  #     @Public() route marker
+          current-user.decorator.ts # @CurrentUser() param decorator
       database/                #   Prisma service, database config
-      common/                  #   Guards, filters, DTO infrastructure, logging
       integrations/            #   External adapters (Agent Runtime client, Step 16+)
       main.ts                  #   Local HTTP entry point (port 3001)
       lambda.ts                #   Future Lambda handler stub
     prisma/                    #   Prisma schema (mirrors supabase/migrations/)
-    test/                      #   Jest unit and integration tests
+    test/
+      auth/                    #   Auth unit + integration tests
+      health.controller.spec.ts
+      migration.spec.ts
     Dockerfile                 #   Node 22 development image
-    .env.example               #   Server-side DATABASE_URL, QDRANT_URL
+    .env.example               #   Server-side DATABASE_URL, SUPABASE vars
     package.json               #   @victenancy/api
   web/                         # Next.js App Router application
-    app/                       #   App Router routes
+    app/
+      auth/
+        callback/route.ts      #   OAuth code exchange (Step 14b)
+      layout.tsx
+      page.tsx
     components/                #   Reusable UI (Step 17+)
     features/                  #   Domain-organized frontend features
-    lib/                       #   Browser-safe clients and utilities
+    lib/
+      supabase/
+        client.ts              #   Browser client factory
+        server.ts              #   Server client factory
     public/                    #   Static assets
     tests/                     #   Web unit/component tests
+    middleware.ts               #   Session refresh middleware (Step 14b)
     Dockerfile                 #   Node 22 development image
     .env.local.example         #   Browser-safe NEXT_PUBLIC_* template
     package.json               #   @victenancy/web
@@ -147,12 +173,14 @@ docs/
     application-boundaries.md  #   Service boundaries and cross-repo contract
   development/
     local-environment.md       #   Local stack contract and startup order
+    local-auth-setup.md        #   Auth environment configuration guide
   integrations/
     agent-runtime.md           #   Agent Runtime consumer guide
   roadmap.md                   #   Full delivery plan (Steps 14a-21)
 scripts/                       # Local verification, DB, and release helpers
 tests/
   e2e/                         # Playwright (Step 19)
+.env.example                   # Google OAuth placeholder for supabase/config.toml
 compose.yaml                   # Local Qdrant + API + Web stack
 package.json                   # Root npm workspace
 ```
