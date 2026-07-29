@@ -7,7 +7,7 @@ Runtime repository. Phase E begins here.
 | ---- | ------ | ---- |
 | 14a  | Done | **Local Stack and Database** — Docker Compose Qdrant + API + Web, Supabase SQL 5-table migration, Prisma client generation |
 | 14b  | Done | **Auth and RLS** — Supabase Auth email/password + Google OAuth, JWT verification via JWKS, Row Level Security policies |
-| 14c  | []() | **Backend Data Controls** — Supavisor connections, correlation IDs, quota counters, bounded requests |
+| 14c  | Done | **Backend Data Controls** — Supavisor-ready connections, correlation IDs, quota counters, bounded requests |
 | 14d  | []() | **Managed Supabase Environments and Database Delivery** — Create separate staging and production Supabase Cloud projects. Configure Auth URL, Google OAuth redirect, JWT signing key, and RLS. Use `supabase/migrations/` as the single DDL source; run migration promotion through CI only. Never modify schema in the Supabase Dashboard. Configure GitHub secrets, backup strategy (daily + PITR decision), restore procedure, and production database access policy. |
 | 15   | []() | **CRUD API** — Conversation/message APIs, cursor pagination, title updates, ownership checks, JWT 401/403, API Gateway throttling |
 | 15a  | []() | **API Lambda and Gateway Deployment** — Implement `apps/api/src/lambda.ts` as a thin adapter reusing `src/bootstrap/`. Build an immutable ECR image, deploy Lambda + HTTP API Gateway + staging alias. Inject configuration via Secrets Manager. Use Supavisor transaction-mode pooler at runtime; migrations and admin operations use direct connection. Provide health check, structured logs, alarms, and a deployment smoke test. |

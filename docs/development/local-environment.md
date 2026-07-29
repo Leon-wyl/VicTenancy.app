@@ -68,8 +68,25 @@ deferred to Step 16 with a separate setup documented in
 5. Fill in `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `apps/web/.env.local`
 6. `npm ci` (from root)
 7. `supabase start`
-8. `supabase db reset` (validates schema + runs RLS migration)
+8. `supabase db reset` (validates schema + runs RLS + data controls migration)
 9. `docker compose up --build` (optional; can also run `npm run dev` for individual services)
+
+## Database URLs
+
+| Variable | Purpose | Local value |
+|---|---|---|
+| `DATABASE_URL` | Runtime API connections | `postgresql://postgres:postgres@localhost:54322/postgres` |
+| `DIRECT_DATABASE_URL` | Migrations, admin, integration tests | Same as DATABASE_URL locally |
+
+In cloud (Step 14d), `DATABASE_URL` will use Supavisor transaction-mode pooling (`:6543?pgbouncer=true`) while `DIRECT_DATABASE_URL` will use the direct database endpoint (`:5432`). Integration tests prefer `DIRECT_DATABASE_URL` with fallback to `DATABASE_URL`.
+
+## Request Quotas
+
+Authenticated API routes are limited by default:
+- `REQUESTS_PER_MINUTE=20` (range 1–1000)
+- `REQUESTS_PER_DAY=200` (range 1–10000)
+
+Set these in `apps/api/.env`. Public `GET /health` is excluded from quotas.
 
 ## Individual Service Commands
 

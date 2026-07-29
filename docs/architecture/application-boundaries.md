@@ -60,6 +60,26 @@ Supabase SQL migrations (`supabase/migrations/`) are the sole DDL authority.
 Prisma is used only for client generation (`prisma generate`). Do not use
 `prisma migrate` or `prisma db push`.
 
+## Data Controls Boundary (Step 14c)
+
+Every API response carries an `X-Request-Id` header (preserved from client if a
+valid UUID, otherwise regenerated). Correlation IDs flow through async-local
+storage and are included in structured request logs (never logging secrets,
+tokens, or PII).
+
+Authenticated request paths consume per-user quotas atomically in PostgreSQL
+via `check_and_increment_quota()`, a `SECURITY INVOKER` function that uses
+`pg_advisory_xact_lock` for all-or-nothing atomicity across minute and day
+windows. Browser roles are explicitly revoked from the function and the
+`request_quota_counters` table. Denied requests return HTTP 429 with a
+`Retry-After` header.
+
+Request bodies are bounded at 16 KiB; oversized payloads return 413.
+A global `ValidationPipe` enforces whitelist, forbidNonWhitelisted, and
+transform. The Prisma service connects lazily — `GET /health` does not depend
+on a database connection. `DATABASE_URL` targets runtime connections;
+`DIRECT_DATABASE_URL` is for migrations, admin, and integration tests.
+
 ## Infrastructure Boundary
 
 `compose.yaml` is the local development orchestrator for Qdrant, API, and the

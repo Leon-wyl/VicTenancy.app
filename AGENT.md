@@ -17,6 +17,7 @@ This agent must follow `CONTRIBUTING.md` for all branching, commit, linting, and
 | Schema Authority | Supabase SQL migrations (`supabase/migrations/`) |
 | Database | Supabase PostgreSQL (local dev) |
 | Auth | Supabase Auth — Step 14b complete |
+| Data Controls | Correlation IDs, quota counters, bounded requests — Step 14c complete |
 | Realtime | Supabase Realtime — planned (Step 18) |
 | Vector Database | Qdrant (local dev only) |
 | Agent Runtime | AusTenancy.ai (external; integration deferred to Step 16) |
@@ -117,6 +118,10 @@ Agent Runtime (external, Step 16)
 8. **Lambda boundary** — `apps/api/src/lambda.ts` is a thin adapter that reuses `src/bootstrap/`. It must not contain business logic, auth rules, or database operations.
 9. **JWT ownership** — API authorization always derives the authenticated user from verified JWT claims (`principal.sub`). Never from request body, query parameter, or browser-supplied identifier.
 10. **RLS + JWT defense in depth** — RLS protects direct Supabase/PostgREST access. The JWT guard protects the API path. Both enforce ownership via `auth.uid()` or verified `sub`.
+11. **Database connection** — Use `DATABASE_URL` for runtime (future Supavisor transaction-mode pooling). Use `DIRECT_DATABASE_URL` for migrations, admin, and integration tests. API uses lazy Prisma connect; `GET /health` does not depend on database availability.
+12. **Correlation IDs** — Every HTTP response carries an `X-Request-Id` header. Valid client-supplied UUIDs are preserved; non-UUID or missing headers are regenerated. All log entries include the request ID.
+13. **Request quotas** — Authenticated routes consume quota atomically per user (20/minute, 200/day defaults). Denied requests return HTTP 429 with `Retry-After` header. Quota counters are stored in `request_quota_counters` with RLS enabled and no browser access.
+14. **Request bounds** — JSON/URL-encoded body limit 16 KiB; oversized bodies return 413. Global `ValidationPipe` enforces whitelist, forbidNonWhitelisted, and transform. HTTP request timeout is 30 seconds (streaming/Agent endpoints will require explicit overrides in future steps).
 
 ## Project Structure
 
@@ -128,14 +133,11 @@ apps/
       modules/                 #   Domain modules (health, conversations, messages, jobs)
       common/
         auth/                  #   JWT guard, SupabaseAuthService, @Public(), @CurrentUser()
-          auth.module.ts
-          auth.controller.ts   #     GET /auth/me
-          jwt.guard.ts         #     Global Bearer token enforcement
-          supabase-auth.service.ts  # JWKS + /auth/v1/user fallback
-          principal.ts         #     Typed Principal interface
-          public.decorator.ts  #     @Public() route marker
-          current-user.decorator.ts # @CurrentUser() param decorator
-      database/                #   Prisma service, database config
+        correlation/           #   X-Request-Id middleware, AsyncLocalStorage context
+        dto/                   #   Shared DTOs (pagination bounds for Step 15)
+        logging/               #   Structured response-finish request logging middleware
+        quota/                 #   Per-user quota guard, service, config
+      database/                #   Prisma service, lazy connect
       integrations/            #   External adapters (Agent Runtime client, Step 16+)
       main.ts                  #   Local HTTP entry point (port 3001)
       lambda.ts                #   Future Lambda handler stub
@@ -145,7 +147,8 @@ apps/
       health.controller.spec.ts
       migration.spec.ts
     Dockerfile                 #   Node 22 development image
-    .env.example               #   Server-side DATABASE_URL, SUPABASE vars
+    .env.example               #   Server-side DATABASE_URL, DIRECT_DATABASE_URL, SUPABASE vars
+    .env                     #   Local server-only environment (not committed)
     package.json               #   @victenancy/api
   web/                         # Next.js App Router application
     app/

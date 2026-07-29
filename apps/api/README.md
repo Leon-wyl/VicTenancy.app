@@ -24,16 +24,22 @@ src/
       auth.controller.ts       # GET /auth/me
       jwt.guard.ts             # Global Bearer token enforcement
       supabase-auth.service.ts # JWKS + /auth/v1/user fallback
-  database/         # Prisma service, database configuration
+    correlation/     #   X-Request-Id middleware, AsyncLocalStorage context
+    dto/             #   Shared DTOs (pagination bounds)
+    logging/         #   Structured response-finish request logging middleware
+    quota/           #   Per-user quota guard, service, config
+  database/         # Prisma service (lazy connect), database config
   integrations/     # External adapters (Agent Runtime client, Step 16+)
   main.ts           # Local HTTP entry point (port 3001)
   lambda.ts         # Future Lambda handler stub
 prisma/             # Prisma schema (mirrors supabase/migrations/)
   schema.prisma
 test/
-  auth/             # Auth unit + integration tests
-  health.controller.spec.ts
-  migration.spec.ts
+    auth/             # Auth unit + integration tests
+    correlation/      # X-Request-Id unit tests
+    quota/            # Quota config, guard, HTTP, integration tests
+    health.controller.spec.ts
+    migration.spec.ts
 ```
 
 ## Lambda Deploy Boundary
@@ -53,6 +59,17 @@ operations.
 | Language | TypeScript 5.x, Node 22 |
 | Test | Jest + @nestjs/testing |
 | Lint/Format | ESLint 9 + Prettier |
+
+## Data Controls (Step 14c)
+
+| Control | Default | Description |
+|---|---|---|
+| Request quotas | 20/min, 200/day per user | Per-user atomic PostgreSQL quota counters with advisory locks; 429 + Retry-After on denial |
+| Correlation ID | `X-Request-Id` header | Valid client UUIDs preserved; missing/invalid regenerated; propagated on all responses including errors |
+| Body size | 16 KiB max | JSON and URL-encoded; 413 on oversized bodies |
+| Request timeout | 30 seconds | Node `requestTimeout`; streaming/Agent endpoints will need explicit overrides |
+| Validation | Global `ValidationPipe` | whitelist, forbidNonWhitelisted, transform, stopAtFirstError |
+| Quota table | `request_quota_counters` | RLS enabled, no browser access; SECURITY INVOKER function; stale cleanup inside function call |
 
 ## Getting Started
 
