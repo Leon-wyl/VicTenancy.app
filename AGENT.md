@@ -15,7 +15,7 @@ This agent must follow `CONTRIBUTING.md` for all branching, commit, linting, and
 | API Framework | NestJS (Express platform) + TypeScript 5.x |
 | Database Client | Prisma (client generation only) |
 | Schema Authority | Supabase SQL migrations (`supabase/migrations/`) |
-| Database | Supabase PostgreSQL (local dev) |
+| Database | Supabase PostgreSQL (local dev + managed Cloud) |
 | Auth | Supabase Auth — Step 14b complete |
 | Data Controls | Correlation IDs, quota counters, bounded requests — Step 14c complete |
 | Realtime | Supabase Realtime — planned (Step 18) |
@@ -23,7 +23,7 @@ This agent must follow `CONTRIBUTING.md` for all branching, commit, linting, and
 | Agent Runtime | AusTenancy.ai (external; integration deferred to Step 16) |
 | Deployment | OpenNext -> CloudFront + Lambda@Edge + S3 — planned (Step 20) |
 | E2E Testing | Playwright — planned (Step 19) |
-| CI/CD | GitHub Actions |
+| Managed Supabase | Supabase Cloud staging + production, CI-driven migration promotion |
 | Language | TypeScript 5.x, Node 22 |
 | Lint/Format | ESLint 9 + Prettier |
 | Workspace | npm workspaces (`apps/*`) |
@@ -31,6 +31,8 @@ This agent must follow `CONTRIBUTING.md` for all branching, commit, linting, and
 | Infrastructure (cloud) | Supabase + AWS — planned |
 
 ## Setup
+
+### Local Development
 
 ```bash
 # Prerequisites: Node 22, npm, Docker, Supabase CLI
@@ -57,6 +59,22 @@ supabase db reset
 # Start the full local stack
 docker compose up --build
 ```
+
+### Cloud (Staging and Production)
+
+Managed Supabase Cloud projects are provisioned in Step 14d. Schema changes are
+promoted exclusively through CI workflows:
+
+1. **PR validation** (`.github/workflows/validate.yml`): runs `supabase db lint`,
+   `supabase db reset`, lint, build, and tests on every PR affecting schema or API code.
+2. **Staging promotion** (`.github/workflows/deploy-staging.yml`): automatically
+   pushes committed migrations to the staging Supabase project on merge to main.
+3. **Production promotion** (`.github/workflows/deploy-production.yml`): manually
+   triggered from main, verifies same-SHA staging deployment success, then requires
+   a reviewer approval gate before pushing to production.
+
+See [`docs/operations/managed-supabase.md`](docs/operations/managed-supabase.md) for
+environment identities, connection modes, and access policies.
 
 **Service endpoints after startup:**
 
@@ -115,6 +133,10 @@ Agent Runtime (external, Step 16)
 5. **CRUD creates jobs, not Agent** — CRUD endpoints create `agent_jobs` records. Agent invocation is deferred to Step 16 and must be server-to-server.
 6. **No Agent Runtime code** — do not copy Agent source (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data) into this repository.
 7. **Local Supabase first** — Supabase Cloud staging and production projects are provisioned in Step 14d after local schema validation passes.
+15. **Cloud schema promotion is CI-only** — managed Supabase schema changes go exclusively through CI workflows (`validate.yml` → `deploy-staging.yml` → `deploy-production.yml`). Never use Dashboard SQL Editor, Table Editor, or `supabase db push` from a local machine for managed environments under normal operations.
+16. **Never echo secrets** — `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, and all credentials must never be printed, serialized, or uploaded in CI logs, workflow YAML, or shell commands. Use GitHub Environment Secrets exclusively, referenced as `${{ secrets.SECRET_NAME }}` only in CI steps.
+17. **Production requires staging verification** — the production database migration workflow must verify a successful staging deployment for the same commit SHA before entering the production Environment approval gate.
+18. **No service-role key in committed files** — service-role credentials are for API runtime only and must never appear in repository files, workflow logs, or browser code.
 8. **Lambda boundary** — `apps/api/src/lambda.ts` is a thin adapter that reuses `src/bootstrap/`. It must not contain business logic, auth rules, or database operations.
 9. **JWT ownership** — API authorization always derives the authenticated user from verified JWT claims (`principal.sub`). Never from request body, query parameter, or browser-supplied identifier.
 10. **RLS + JWT defense in depth** — RLS protects direct Supabase/PostgREST access. The JWT guard protects the API path. Both enforce ownership via `auth.uid()` or verified `sub`.

@@ -81,6 +81,39 @@ npx -w @victenancy/api prisma generate
 npm run dev -w @victenancy/api     # http://localhost:3001/health
 
 # Tests
-npm run test -w @victenancy/api    # Jest (health + migration)
+npm run test -w @victenancy/api    # Jest (unit + HTTP tests)
+npm run test:integration -w @victenancy/api  # Auth + migration + quota integration tests
 npm run lint -w @victenancy/api    # ESLint
 ```
+
+## Cloud Database URLs
+
+In managed Supabase environments, two database URLs are used:
+
+| Variable | Purpose | Cloud format |
+|---|---|---|
+| `DATABASE_URL` | Runtime API connections (Supavisor) | `postgresql://postgres.PROJECT_REF:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true` |
+| `DIRECT_DATABASE_URL` | Migrations, admin, integration tests | `postgresql://postgres.PROJECT_REF:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres` |
+
+All values above are `${PLACEHOLDER}`. They are never committed. Step 14d GitHub
+Environment configuration stores only the migration-scoped Supabase access token
+and database password; runtime connection strings are injected from AWS Secrets
+Manager when the API is deployed in Step 15a.
+
+## CI Migration Promotion
+
+Schema changes are promoted exclusively through CI:
+
+- **PR validation** (`.github/workflows/validate.yml`): `supabase db lint` →
+  `supabase db reset` → Prisma generate → lint → build → unit + integration tests
+- **Staging** (`.github/workflows/deploy-staging.yml`): auto-promotes on merge
+  to main; `supabase db push` + fail-closed migration history verification + JWKS smoke
+- **Production** (`.github/workflows/deploy-production.yml`): manual dispatch
+  from main; verifies same-SHA staging deployment → production approval gate →
+  `supabase db push` + verification
+
+See [`docs/operations/managed-supabase.md`](../../docs/operations/managed-supabase.md)
+for environment identities, connection modes, and access policies.
+
+Never use the Supabase Dashboard SQL Editor, Table Editor, or `supabase db push`
+from a local machine for managed environments under normal operations.

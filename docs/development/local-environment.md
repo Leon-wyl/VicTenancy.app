@@ -73,12 +73,23 @@ deferred to Step 16 with a separate setup documented in
 
 ## Database URLs
 
-| Variable | Purpose | Local value |
-|---|---|---|
-| `DATABASE_URL` | Runtime API connections | `postgresql://postgres:postgres@localhost:54322/postgres` |
-| `DIRECT_DATABASE_URL` | Migrations, admin, integration tests | Same as DATABASE_URL locally |
+| Variable | Purpose | Local value | Cloud value |
+|---|---|---|---|
+| `DATABASE_URL` | Runtime API connections | `postgresql://postgres:postgres@localhost:54322/postgres` | `postgresql://postgres.PROJECT_REF:DB_PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true` |
+| `DIRECT_DATABASE_URL` | Migrations, admin, integration tests | Same as DATABASE_URL locally | `postgresql://postgres.PROJECT_REF:DB_PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres` |
 
-In cloud (Step 14d), `DATABASE_URL` will use Supavisor transaction-mode pooling (`:6543?pgbouncer=true`) while `DIRECT_DATABASE_URL` will use the direct database endpoint (`:5432`). Integration tests prefer `DIRECT_DATABASE_URL` with fallback to `DATABASE_URL`.
+In cloud, `DATABASE_URL` uses Supavisor transaction-mode pooling (`:6543?pgbouncer=true`) while `DIRECT_DATABASE_URL` uses the direct database endpoint (`:5432`). Integration tests prefer `DIRECT_DATABASE_URL` with fallback to `DATABASE_URL`.
+
+Local development uses direct connections (`:54322`) for both variables since Supavisor is not available locally.
+
+### Schema Validation
+
+| Environment | Method |
+|---|---|
+| Local | `supabase db reset` (reset to committed migrations) |
+| Cloud (staging/production) | CI `supabase db push` (`.github/workflows/deploy-staging.yml` / `deploy-production.yml`) |
+
+Never use the Supabase Dashboard SQL Editor or Table Editor for schema changes. All DDL flows through `supabase/migrations/` → CI.
 
 ## Request Quotas
 

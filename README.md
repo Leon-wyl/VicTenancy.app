@@ -33,20 +33,24 @@ AusTenancy.ai Agent Runtime.
 | Workspace | npm workspaces (`apps/*`) |
 | Frontend Deploy | OpenNext -> CloudFront + Lambda@Edge + S3 — planned |
 | E2E Testing | Playwright — planned |
-| CI/CD | GitHub Actions |
+| CI/CD | GitHub Actions (validate, staging auto-promote, production manual approval) |
 | Lint/Format | ESLint + Prettier |
 
 ## Architecture
 
 ```
 Browser (localhost:3000)
-  |  Auth reads -> Supabase Auth (localhost:54321)
+  |  Auth reads -> Supabase Auth
   |  Realtime -> Supabase Realtime
   |  CRUD writes -> NestJS API (localhost:3001)
   |
 NestJS API (:3001)
-  |  Reads/Writes -> Supabase PostgreSQL (host.docker.internal:54322)
+  |  Reads/Writes -> Supabase PostgreSQL (local:54322, cloud:6543 Supavisor)
   |  Sync read -> Qdrant (:6333)
+  |
+Supabase (local CLI / managed Cloud)
+  |  Local: PostgreSQL :54322, Auth :54321, Studio :54323
+  |  Cloud: staging + production managed projects (CI promotion)
   |
 Agent Runtime (external, Step 16)
   |  Deployed: AusTenancy.ai Lambda + API Gateway
@@ -94,6 +98,18 @@ npm run build                      # Build all workspaces
 ## Roadmap
 
 See [docs/roadmap.md](docs/roadmap.md) for the full delivery plan (Steps 14a-21).
+
+## CI/CD
+
+### Database Schema
+
+Schema changes are promoted exclusively through CI:
+
+- **PR validation**: `npm ci` → `supabase start` → `db lint` → `db reset` → Prisma generate → lint → build → test
+- **Staging**: auto-promotes on merge to main; `supabase db push` + migration history verification + JWKS smoke
+- **Production**: manual dispatch from main; verifies staging deployment success → reviewer approval gate → `supabase db push` + verification
+
+See [`.github/workflows/`](.github/workflows/) for the full pipeline definitions.
 
 ## API Contracts
 

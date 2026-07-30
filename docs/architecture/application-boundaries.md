@@ -89,6 +89,40 @@ web application. It does not manage cloud infrastructure.
 project provisioning (staging and production) is delivered in Step 14d
 via CI-driven migration promotion.
 
+### Managed Supabase Projects (Step 14d)
+
+Separate staging and production Supabase Cloud projects exist with independent
+identities, JWT signing keys, OAuth clients, and connection strings.
+
+**Schema promotion path** (CI only under normal operations):
+1. PR validation (`.github/workflows/validate.yml`): `supabase db lint` →
+   `supabase db reset` → Prisma generate → lint → build → test.
+2. Staging promotion (`.github/workflows/deploy-staging.yml`): automatic on
+   merge to main when `supabase/migrations/` changes.
+3. Production promotion (`.github/workflows/deploy-production.yml`): manual
+   dispatch from main; verifies the same commit SHA has a successful staging
+   deployment through GitHub deployment metadata, then requires the protected
+   production Environment approval gate.
+
+**Dashboard policy**: Supabase Dashboard is allowed for project settings, OAuth
+configuration, JWT signing keys, observability, and backup restore approval.
+It must **never** be used for DDL (SQL Editor, Table Editor). All schema changes
+flow through committed SQL migrations and CI.
+
+**Connection modes**:
+- `DATABASE_URL`: Supavisor transaction-mode pooling (`:6543?pgbouncer=true`)
+  for API runtime connections.
+- `DIRECT_DATABASE_URL`: direct database endpoint (`:5432`) for migrations,
+  administration, and controlled integration operations.
+
+**Production database access**: least privilege, MFA-protected, time-bounded,
+audited, and credential-manager backed. See
+[`docs/operations/managed-supabase.md`](../operations/managed-supabase.md).
+
+**Network restrictions**: deferred to Step 15a pending stable AWS/CI egress IPs.
+Do not enable an allowlist that blocks CI migration workflows or future Lambda
+runtime connectivity.
+
 Future cloud IaC belongs in `infra/aws/`. This repository does not contain
 Terraform, CDK, SAM, or Serverless Framework configurations.
 
