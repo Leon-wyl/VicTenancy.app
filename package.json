@@ -1,0 +1,18 @@
+{
+  "name": "victenancy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VicTenancy.app — Australian residential tenancies full-stack application",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @victenancy/api & npm run dev -w @victenancy/web",
+    "build": "npm run build -w @victenancy/api && npm run build -w @victenancy/web",
+    "lint": "npm run lint -w @victenancy/api && npm run lint -w @victenancy/web",
+    "test": "npm run test -w @victenancy/api",
+    "test:e2e": "echo 'E2E tests not yet implemented (Step 19)'",
+    "format": "npm run format -w @victenancy/api",
+    "format:fix": "npm run format:fix -w @victenancy/api"
+  }
+}
