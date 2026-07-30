@@ -1,0 +1,125 @@
+name: Deploy Production Database
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-db-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      deployments: read
+
+    steps:
+      - name: Verify staging deployment exists for this commit
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const deployments = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              environment: 'staging',
+              per_page: 20,
+            });
+
+            if (deployments.data.length === 0) {
+              core.setFailed(
+                `Commit ${context.sha} has no staging deployment. ` +
+                'Promote to staging first.'
+              );
+              return;
+            }
+
+            let foundSuccess = false;
+            for (const dep of deployments.data) {
+              const statuses = await github.rest.repos.listDeploymentStatuses({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: dep.id,
+                per_page: 10,
+              });
+              if (statuses.data.some(s => s.state === 'success')) {
+                foundSuccess = true;
+                break;
+              }
+            }
+
+            if (!foundSuccess) {
+              core.setFailed(
+                `No successful staging deployment found for commit ${context.sha}. ` +
+                'Ensure staging promotion completed successfully.'
+              );
+            }
+
+            core.info(`Verified: commit ${context.sha} has a successful staging deployment`);
+
+  deploy-production:
+    needs: verify-staging
+    environment:
+      name: production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@e6b39f22c5c1c4601862cb0ae10251ebe6a3c236 # v1.4.3
+        with:
+          version: 2.20.12
+
+      - name: Link to production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Dry-run push
+        run: supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Push migrations
+        run: supabase db push --password "$SUPABASE_DB_PASSWORD"
+
+      - name: Verify migration history
+        run: |
+          set -euo pipefail
+          EXPECTED_VERSIONS=$(find supabase/migrations -maxdepth 1 -name '*.sql' -type f \
+            -exec basename {} .sql \; | sed 's/_.*//' | sort \
+            | jq -Rsc 'split("\n") | map(select(length > 0))')
+          MIGRATIONS=$(supabase migration list --password "$SUPABASE_DB_PASSWORD" --output-format json)
+          if ! jq -e --argjson expected "$EXPECTED_VERSIONS" '
+            [.migrations[] | .local] as $local
+            | [.migrations[] | .remote] as $remote
+            | ($local == $expected and $remote == $expected)
+          ' <<< "$MIGRATIONS" > /dev/null; then
+            echo "::error::Local and remote migration histories do not exactly match"
+            echo "$MIGRATIONS"
+            exit 1
+          fi
+          DRY_RUN=$(supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD" 2>&1 || true)
+          if ! echo "$DRY_RUN" | grep -qiE '(no changes|up to date|already up to date)'; then
+            echo "::error::Pending migrations detected after promotion"
+            echo "$DRY_RUN"
+            exit 1
+          fi
+          echo "Migration history verified: local and remote versions exactly match"
+
+      - name: Verify JWKS endpoint
+        run: |
+          set -euo pipefail
+          SUPABASE_URL="https://${SUPABASE_PROJECT_REF}.supabase.co"
+          curl -fsS "$SUPABASE_URL/auth/v1/.well-known/jwks.json" \
+            | jq -e '.keys | map(select(.kty == "EC" and .crv == "P-256" and .alg == "ES256" and .use == "sig")) | length > 0' > /dev/null \
+            || { echo "::error::JWKS endpoint missing EC/P-256/ES256/sig key"; exit 1; }
+          echo "JWKS endpoint verified"
