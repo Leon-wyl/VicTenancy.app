@@ -52,10 +52,28 @@ jobs:
 
       - name: Export local Supabase environment
         run: |
-          supabase status -o env \
+          STATUS_OUTPUT=$(supabase status -o env \
             --override-name api.url=SUPABASE_URL \
-            --override-name auth.anon_key=SUPABASE_PUBLISHABLE_KEY \
-            >> "$GITHUB_ENV"
+            --override-name auth.anon_key=SUPABASE_PUBLISHABLE_KEY)
+
+          extract_env_value() {
+            printf '%s\n' "$STATUS_OUTPUT" \
+              | awk -F= -v key="$1" '$1 == key {
+                  sub(/^[^=]*=/, "");
+                  gsub(/^"|"$/, "");
+                  print;
+                  exit;
+                }'
+          }
+
+          SUPABASE_URL_VALUE=$(extract_env_value SUPABASE_URL)
+          SUPABASE_PUBLISHABLE_KEY_VALUE=$(extract_env_value SUPABASE_PUBLISHABLE_KEY)
+          if [ -z "$SUPABASE_URL_VALUE" ] || [ -z "$SUPABASE_PUBLISHABLE_KEY_VALUE" ]; then
+            echo "::error::Supabase status did not provide URL and publishable key"
+            exit 1
+          fi
+          printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL_VALUE" >> "$GITHUB_ENV"
+          printf 'SUPABASE_PUBLISHABLE_KEY=%s\n' "$SUPABASE_PUBLISHABLE_KEY_VALUE" >> "$GITHUB_ENV"
 
       - name: Set local Supabase environment mapping
         run: |
@@ -63,6 +81,10 @@ jobs:
           echo "REQUESTS_PER_MINUTE=20" >> "$GITHUB_ENV"
           echo "REQUESTS_PER_DAY=200" >> "$GITHUB_ENV"
           echo "TEST_DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres" >> "$GITHUB_ENV"
+
+      - name: Validate local Supabase environment
+        run: |
+          node -e 'new URL(process.env.SUPABASE_URL); if (!process.env.SUPABASE_PUBLISHABLE_KEY) process.exit(1)'
 
       - name: Generate Prisma client
         run: npx -w @victenancy/api prisma generate
