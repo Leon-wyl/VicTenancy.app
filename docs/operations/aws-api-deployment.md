@@ -10,7 +10,7 @@ GitHub Actions (OIDC)
   → assume deploy role
     → push ECR image (staging only)
     → terraform apply environment root
-      → Lambda (container, reserved concurrency)
+      → Lambda (container, account concurrency pool)
         → Secrets Manager (runtime DATABASE_URL)
         → Supavisor (transaction-mode pooler)
       → API Gateway HTTP API v2
@@ -26,6 +26,16 @@ GitHub Actions (OIDC)
 | `bootstrap/terraform.tfstate` | Account-level resources (ECR, roles, secrets, state bucket) | Read-only for staging and production |
 | `api/staging/terraform.tfstate` | Staging Lambda, API Gateway, log groups, alarms | Read-write |
 | `api/production/terraform.tfstate` | Production Lambda, API Gateway, log groups, alarms | Read-write |
+
+## Lambda Concurrency
+
+The initial AWS account quota is 10 concurrent executions. AWS requires at
+least 10 executions to remain unreserved, so both environments explicitly use
+`reserved_concurrency = -1` and share the account concurrency pool. The API's
+application-level request limits remain the protection against excess traffic.
+
+Do not introduce a positive reservation unless the account concurrency quota
+has first been raised enough to leave AWS's required unreserved capacity.
 
 ## Bootstrap Sequence (Manual, One-Time)
 
