@@ -210,6 +210,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
           "cloudwatch:DescribeAlarms", "cloudwatch:TagResource",
+          "cloudwatch:ListTagsForResource",
         ]
         Resource = [
           "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:victenancy-staging*",
@@ -347,6 +348,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
           "cloudwatch:DescribeAlarms", "cloudwatch:TagResource",
+          "cloudwatch:ListTagsForResource",
         ]
         Resource = [
           "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:victenancy-production*",
