@@ -9,16 +9,15 @@ COPY apps/api/package.json apps/api/
 
 RUN npm ci --workspace=@victenancy/api --include-workspace-root
 
-COPY apps/api/tsconfig.json apps/api/tsconfig.build.json apps/api/nest-cli.json apps/api/
+COPY apps/api/tsconfig.json apps/api/nest-cli.json apps/api/
 
 COPY apps/api/prisma apps/api/prisma/
 COPY apps/api/src apps/api/src/
 
 WORKDIR /build/apps/api
-RUN npm run build
-
 ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 RUN npx prisma generate
+RUN npm run build
 
 WORKDIR /build
 RUN npm prune --omit=dev
