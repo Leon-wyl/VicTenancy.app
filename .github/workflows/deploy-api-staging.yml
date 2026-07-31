@@ -81,18 +81,28 @@ jobs:
           ECR_REPO_URL="${{ steps.aws-credentials.outputs.aws-account-id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/victenancy-api"
           FULL_TAG="${ECR_REPO_URL}:${IMAGE_TAG}"
 
-          docker buildx build \
-            --platform linux/amd64 \
-            -f apps/api/Dockerfile.lambda \
-            -t "${FULL_TAG}" \
-            --push \
-            .
-
-          DIGEST=$(aws ecr describe-images \
+          # ECR tags are immutable. A workflow retry for the same commit must
+          # reuse the existing image instead of attempting to push the tag again.
+          if DIGEST="$(aws ecr describe-images \
             --repository-name victenancy-api \
             --image-ids imageTag="${IMAGE_TAG}" \
             --query 'imageDetails[0].imageDigest' \
-            --output text)
+            --output text 2>/dev/null)" && [ "${DIGEST}" != "None" ]; then
+            echo "Image tag ${IMAGE_TAG} already exists; reusing ${DIGEST}."
+          else
+            docker buildx build \
+              --platform linux/amd64 \
+              -f apps/api/Dockerfile.lambda \
+              -t "${FULL_TAG}" \
+              --push \
+              .
+
+            DIGEST=$(aws ecr describe-images \
+              --repository-name victenancy-api \
+              --image-ids imageTag="${IMAGE_TAG}" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)
+          fi
 
           IMAGE_URI="${ECR_REPO_URL}@${DIGEST}"
           echo "image_uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
