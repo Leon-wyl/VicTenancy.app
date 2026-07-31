@@ -60,6 +60,25 @@ Supabase SQL migrations (`supabase/migrations/`) are the sole DDL authority.
 Prisma is used only for client generation (`prisma generate`). Do not use
 `prisma migrate` or `prisma db push`.
 
+## CRUD API Boundary (Step 15)
+
+Authenticated business endpoints live under `/v1/conversations`. The API owns
+conversation creation, cursor-based listing, title updates, hard deletion,
+message listing, and user-message submission. Every lookup and mutation derives
+the owner from the verified JWT `principal.sub`; unknown and cross-user
+conversations return 404.
+
+`POST /v1/conversations/:conversationId/messages` requires a UUID
+`Idempotency-Key`. It creates a user message, updates conversation activity,
+and creates a queued `agent_jobs` row in one Serializable transaction. A
+replayed key with identical conversation and content returns the original
+message/job without invoking the Agent Runtime. Agent execution, assistant
+messages, citation writes, job processing, retries, and streaming remain
+owned by Step 16.
+
+The NestJS API does not own login, logout, OAuth, password reset, refresh, or
+session issuance; those remain Supabase Auth and frontend responsibilities.
+
 ## Data Controls Boundary (Step 14c)
 
 Every API response carries an `X-Request-Id` header (preserved from client if a

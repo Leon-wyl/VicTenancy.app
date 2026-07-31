@@ -36,6 +36,15 @@ AusTenancy.ai Agent Runtime.
 | CI/CD | GitHub Actions (validate, staging auto-promote, production manual approval) |
 | Lint/Format | ESLint + Prettier |
 
+## Application API
+
+Step 15 provides authenticated, cursor-paginated conversation and message
+endpoints under `/v1`. Submitting a user message creates a durable queued job
+but does not invoke the external Agent Runtime until Step 16. Supabase Auth
+continues to own signup, login, OAuth, logout, and session refresh.
+
+See [Application API](docs/api/application-api.md) for the complete contract.
+
 ## Architecture
 
 ```
@@ -114,6 +123,7 @@ See [`.github/workflows/`](.github/workflows/) for the full pipeline definitions
 ## API Contracts
 
 - [Agent Runtime Integration](docs/integrations/agent-runtime.md)
+- [Application API](docs/api/application-api.md)
 - [Application Boundaries](docs/architecture/application-boundaries.md)
 - [Local Development Environment](docs/development/local-environment.md)
 
