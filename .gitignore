@@ -153,3 +153,11 @@ qdrant_storage/
 
 # Supabase generated TypeScript types (local only)
 *.gen.ts
+
+# Terraform (infra/aws)
+infra/aws/**/.terraform/
+infra/aws/**/*.tfstate
+infra/aws/**/*.tfstate.backup
+infra/aws/**/*.tfplan
+infra/aws/**/*.tfvars
+!infra/aws/**/*.tfvars.example

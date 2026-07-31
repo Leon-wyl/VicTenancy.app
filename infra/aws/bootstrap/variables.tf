@@ -31,3 +31,21 @@ variable "github_repo" {
   type        = string
   description = "GitHub repository name"
 }
+
+variable "github_org_id" {
+  type        = string
+  description = "Numeric GitHub organization or user ID used in OIDC subject claims"
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_org_id))
+    error_message = "github_org_id must contain only digits."
+  }
+}
+
+variable "github_repo_id" {
+  type        = string
+  description = "Numeric GitHub repository ID used in OIDC subject claims"
+  validation {
+    condition     = can(regex("^[0-9]+$", var.github_repo_id))
+    error_message = "github_repo_id must contain only digits."
+  }
+}
