@@ -8,6 +8,23 @@ datasource db {
   directUrl = env("DIRECT_DATABASE_URL")
 }
 
+enum AuthorRole {
+  user
+  assistant
+
+  @@map("author_role")
+}
+
+enum JobStatus {
+  queued
+  processing
+  succeeded
+  failed
+  cancelled
+
+  @@map("job_status")
+}
+
 model User {
   id        String   @id @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
@@ -39,7 +56,7 @@ model Conversation {
 model Message {
   id             String   @id @default(uuid()) @db.Uuid
   conversationId String   @map("conversation_id") @db.Uuid
-  authorRole     String   @map("author_role") @db.VarChar(50)
+  authorRole     AuthorRole @map("author_role")
   content        String   @db.Text
   metadata       Json?    @db.JsonB
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
@@ -57,7 +74,7 @@ model AgentJob {
   conversationId   String    @map("conversation_id") @db.Uuid
   triggerMessageId String    @map("trigger_message_id") @db.Uuid
   ownerUserId      String    @map("owner_user_id") @db.Uuid
-  status           String    @default("queued") @db.VarChar(50)
+  status           JobStatus @default(queued)
   idempotencyKey   String    @map("idempotency_key")
   correlationId    String    @default(uuid()) @map("correlation_id") @db.Uuid
   attempt          Int       @default(1)
