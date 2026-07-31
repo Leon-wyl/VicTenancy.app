@@ -15,14 +15,32 @@ Do not place Agent code (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data,
 Terraform) in this repository. The Agent Runtime API contract is documented at
 [`docs/integrations/agent-runtime.md`](../integrations/agent-runtime.md).
 
-## Lambda Deploy Boundary
+## Lambda Deploy Boundary (Step 15a — In Progress)
 
 `apps/api/src/bootstrap/` creates the Nest HTTP application and is shared
-between the local `main.ts` listener and the future `lambda.ts` Lambda handler.
+between the local `main.ts` listener and the Lambda handler in `lambda.ts`.
 
-`apps/api/src/lambda.ts` is a future API Gateway/Lambda adapter. It must reuse
-the bootstrap factory and must not contain business logic, auth rules, or
-database operations.
+`apps/api/src/lambda.ts` is a thin API Gateway v2 adapter that:
+1. Loads runtime configuration from AWS Secrets Manager via `loadRuntimeConfig()`
+2. Reuses the `createApp()` factory from `src/bootstrap/`
+3. Delegates events to `@codegenie/serverless-express`
+
+It must not contain business logic, auth rules, or database operations.
+
+The Lambda reads its `DATABASE_URL` from Secrets Manager at cold start.
+`DIRECT_DATABASE_URL` is forbidden in the Lambda runtime. All non-sensitive
+configuration (Supabase URL, JWT issuer, quotas) is passed through Lambda
+environment variables defined in Terraform.
+
+Runtime infrastructure is managed by Terraform in `infra/aws/`:
+- **Bootstrap** (account-level): S3 state bucket, GitHub OIDC provider, ECR
+- **Deploy roles**: least-privilege OIDC roles per environment
+- **Execution roles**: Lambda access to CloudWatch logs + Secrets Manager secret only
+- **Module**: reusable Lambda + API Gateway HTTP API v2 (28s timeout, 512 MB, x86_64)
+- **Environments**: staging (reserved concurrency 5) and production (reserved concurrency 10)
+
+API Gateway applies no authorization — all JWT enforcement is performed by the
+application's `JwtAuthGuard`, just as in local development.
 
 ## Client and Credential Boundary
 

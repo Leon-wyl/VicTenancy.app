@@ -117,7 +117,19 @@ In managed Supabase environments, two database URLs are used:
 All values above are `${PLACEHOLDER}`. They are never committed. Step 14d GitHub
 Environment configuration stores only the migration-scoped Supabase access token
 and database password; runtime connection strings are injected from AWS Secrets
-Manager when the API is deployed in Step 15a.
+Manager at runtime. See [docs/operations/aws-api-deployment.md](../../docs/operations/aws-api-deployment.md).
+
+## Lambda Deployment (Step 15a)
+
+The API is deployed as a Lambda container image behind API Gateway HTTP API v2:
+
+- **`src/lambda.ts`**: thin adapter that loads runtime config from Secrets Manager, then delegates to the shared `createApp()` factory via `@codegenie/serverless-express`
+- **`Dockerfile.lambda`**: multi-stage build (`public.ecr.aws/sam/build-nodejs22.x` builder → `public.ecr.aws/lambda/nodejs:22` runtime)
+- **Runtime config**: `loadRuntimeConfig()` fetches `DATABASE_URL` from Secrets Manager at cold start, validates it as a Supavisor pooler URL, and caches the result
+- **Infrastructure**: `infra/aws/` — Terraform IaC (bootstrap → api-runtime module → staging/production roots)
+- **CI/CD**: `.github/workflows/deploy-api-staging.yml` and `.github/workflows/deploy-api-production.yml`
+
+`DIRECT_DATABASE_URL` is forbidden in Lambda runtime; it remains limited to migrations and integration tests.
 
 ## CI Migration Promotion
 
