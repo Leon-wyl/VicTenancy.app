@@ -82,6 +82,16 @@ jobs:
         with:
           version: 2.110.0
 
+      - name: Validate Supabase deployment inputs
+        run: |
+          set -euo pipefail
+          for name in SUPABASE_PROJECT_REF SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::$name is not configured in the production environment"
+              exit 1
+            fi
+          done
+
       - name: Link to production project
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 

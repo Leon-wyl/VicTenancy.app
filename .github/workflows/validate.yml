@@ -80,6 +80,8 @@ jobs:
           echo "NODE_ENV=test" >> "$GITHUB_ENV"
           echo "REQUESTS_PER_MINUTE=20" >> "$GITHUB_ENV"
           echo "REQUESTS_PER_DAY=200" >> "$GITHUB_ENV"
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres" >> "$GITHUB_ENV"
+          echo "DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres" >> "$GITHUB_ENV"
           echo "TEST_DIRECT_DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres" >> "$GITHUB_ENV"
 
       - name: Validate local Supabase environment
