@@ -35,8 +35,8 @@ export class QuotaService {
         retry_after_seconds
       FROM check_and_increment_quota(
         ${userId}::UUID,
-        ${this.maxPerMinute},
-        ${this.maxPerDay}
+        ${this.maxPerMinute}::INT,
+        ${this.maxPerDay}::INT
       )
     `;
 

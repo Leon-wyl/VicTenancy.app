@@ -97,6 +97,12 @@ Authenticated API routes are limited by default:
 - `REQUESTS_PER_MINUTE=20` (range 1–1000)
 - `REQUESTS_PER_DAY=200` (range 1–10000)
 
+For direct local API execution, use `SUPABASE_URL=http://127.0.0.1:54321` so
+the configured issuer matches local Supabase access tokens. Docker Compose uses
+`host.docker.internal` as its network address and explicitly keeps
+`SUPABASE_JWT_ISSUER=http://127.0.0.1:54321/auth/v1`; do not replace that issuer
+with the container-only hostname.
+
 Set these in `apps/api/.env`. Public `GET /health` is excluded from quotas.
 
 ## Individual Service Commands

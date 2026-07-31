@@ -84,7 +84,7 @@ environment identities, connection modes, and access policies.
 | API | http://localhost:3001/health | `{ "status": "ok" }` |
 | Qdrant | http://localhost:6333/healthz | 200 OK |
 | Supabase Studio | http://localhost:54323 | GUI accessible |
-| Supabase API | http://localhost:54321 | — |
+| Supabase API | http://127.0.0.1:54321 | — |
 | Supabase PostgreSQL | localhost:54322 | — |
 
 ## Run
@@ -131,19 +131,20 @@ Agent Runtime (external, Step 16)
 3. **No browser database access** — browser code must not receive database credentials or a Supabase service-role key.
 4. **Service-role is server-only** — `SUPABASE_SERVICE_ROLE_KEY` is for the API only, never the browser.
 5. **CRUD creates jobs, not Agent** — CRUD endpoints create `agent_jobs` records. Agent invocation is deferred to Step 16 and must be server-to-server.
-6. **No Agent Runtime code** — do not copy Agent source (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data) into this repository.
-7. **Local Supabase first** — Supabase Cloud staging and production projects are provisioned in Step 14d after local schema validation passes.
-15. **Cloud schema promotion is CI-only** — managed Supabase schema changes go exclusively through CI workflows (`validate.yml` → `deploy-staging.yml` → `deploy-production.yml`). Never use Dashboard SQL Editor, Table Editor, or `supabase db push` from a local machine for managed environments under normal operations.
-16. **Never echo secrets** — `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, and all credentials must never be printed, serialized, or uploaded in CI logs, workflow YAML, or shell commands. Use GitHub Environment Secrets exclusively, referenced as `${{ secrets.SECRET_NAME }}` only in CI steps.
-17. **Production requires staging verification** — the production database migration workflow must verify a successful staging deployment for the same commit SHA before entering the production Environment approval gate.
-18. **No service-role key in committed files** — service-role credentials are for API runtime only and must never appear in repository files, workflow logs, or browser code.
-8. **Lambda boundary** — `apps/api/src/lambda.ts` is a thin adapter that reuses `src/bootstrap/`. It must not contain business logic, auth rules, or database operations.
-9. **JWT ownership** — API authorization always derives the authenticated user from verified JWT claims (`principal.sub`). Never from request body, query parameter, or browser-supplied identifier.
-10. **RLS + JWT defense in depth** — RLS protects direct Supabase/PostgREST access. The JWT guard protects the API path. Both enforce ownership via `auth.uid()` or verified `sub`.
-11. **Database connection** — Use `DATABASE_URL` for runtime (future Supavisor transaction-mode pooling). Use `DIRECT_DATABASE_URL` for migrations, admin, and integration tests. API uses lazy Prisma connect; `GET /health` does not depend on database availability.
-12. **Correlation IDs** — Every HTTP response carries an `X-Request-Id` header. Valid client-supplied UUIDs are preserved; non-UUID or missing headers are regenerated. All log entries include the request ID.
-13. **Request quotas** — Authenticated routes consume quota atomically per user (20/minute, 200/day defaults). Denied requests return HTTP 429 with `Retry-After` header. Quota counters are stored in `request_quota_counters` with RLS enabled and no browser access.
-14. **Request bounds** — JSON/URL-encoded body limit 16 KiB; oversized bodies return 413. Global `ValidationPipe` enforces whitelist, forbidNonWhitelisted, and transform. HTTP request timeout is 30 seconds (streaming/Agent endpoints will require explicit overrides in future steps).
+6. **CRUD API** — Conversation and message endpoints live under `/v1` prefix. Idempotent message creation uses `Idempotency-Key` header. All queries are ownership-scoped via `ownerUserId`, enforced with `@CurrentUser().sub`.
+7. **No Agent Runtime code** — do not copy Agent source (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data) into this repository.
+8. **Local Supabase first** — Supabase Cloud staging and production projects are provisioned in Step 14d after local schema validation passes.
+9. **Cloud schema promotion is CI-only** — managed Supabase schema changes go exclusively through CI workflows (`validate.yml` → `deploy-staging.yml` → `deploy-production.yml`). Never use Dashboard SQL Editor, Table Editor, or `supabase db push` from a local machine for managed environments under normal operations.
+10. **Never echo secrets** — `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, and all credentials must never be printed, serialized, or uploaded in CI logs, workflow YAML, or shell commands. Use GitHub Environment Secrets exclusively, referenced as `${{ secrets.SECRET_NAME }}` only in CI steps.
+11. **Production requires staging verification** — the production database migration workflow must verify a successful staging deployment for the same commit SHA before entering the production Environment approval gate.
+12. **No service-role key in committed files** — service-role credentials are for API runtime only and must never appear in repository files, workflow logs, or browser code.
+13. **Lambda boundary** — `apps/api/src/lambda.ts` is a thin adapter that reuses `src/bootstrap/`. It must not contain business logic, auth rules, or database operations.
+14. **JWT ownership** — API authorization always derives the authenticated user from verified JWT claims (`principal.sub`). Never from request body, query parameter, or browser-supplied identifier.
+15. **RLS + JWT defense in depth** — RLS protects direct Supabase/PostgREST access. The JWT guard protects the API path. Both enforce ownership via `auth.uid()` or verified `sub`.
+16. **Database connection** — Use `DATABASE_URL` for runtime (future Supavisor transaction-mode pooling). Use `DIRECT_DATABASE_URL` for migrations, admin, and integration tests. API uses lazy Prisma connect; `GET /health` does not depend on database availability.
+17. **Correlation IDs** — Every HTTP response carries an `X-Request-Id` header. Valid client-supplied UUIDs are preserved; non-UUID or missing headers are regenerated. All log entries include the request ID.
+18. **Request quotas** — Authenticated routes consume quota atomically per user (20/minute, 200/day defaults). Denied requests return HTTP 429 with `Retry-After` header. Quota counters are stored in `request_quota_counters` with RLS enabled and no browser access.
+19. **Request bounds** — JSON/URL-encoded body limit 16 KiB; oversized bodies return 413. Global `ValidationPipe` enforces whitelist, forbidNonWhitelisted, and transform. HTTP request timeout is 30 seconds (streaming/Agent endpoints will require explicit overrides in future steps).
 
 ## Project Structure
 
@@ -152,11 +153,12 @@ apps/
   api/                         # NestJS API service
     src/
       bootstrap/               #   Nest HTTP app factory (shared by main.ts & lambda.ts)
-      modules/                 #   Domain modules (health, conversations, messages, jobs)
+      modules/                 #   Domain modules (conversations, messages)
       common/
         auth/                  #   JWT guard, SupabaseAuthService, @Public(), @CurrentUser()
         correlation/           #   X-Request-Id middleware, AsyncLocalStorage context
-        dto/                   #   Shared DTOs (pagination bounds for Step 15)
+        dto/                   #   Shared DTOs (pagination)
+        pagination/            #   Cursor codec, PageResponse DTO
         logging/               #   Structured response-finish request logging middleware
         quota/                 #   Per-user quota guard, service, config
       database/                #   Prisma service, lazy connect
@@ -201,6 +203,8 @@ docs/
     local-auth-setup.md        #   Auth environment configuration guide
   integrations/
     agent-runtime.md           #   Agent Runtime consumer guide
+  api/
+    application-api.md         #   Versioned application CRUD contract
   roadmap.md                   #   Full delivery plan (Steps 14a-21)
 scripts/                       # Local verification, DB, and release helpers
 tests/
@@ -217,5 +221,6 @@ See [docs/roadmap.md](docs/roadmap.md) for the full delivery plan.
 ## API Contracts
 
 - **Agent Runtime:** [docs/integrations/agent-runtime.md](docs/integrations/agent-runtime.md)
+- **Application API:** [docs/api/application-api.md](docs/api/application-api.md)
 - **Application Boundaries:** [docs/architecture/application-boundaries.md](docs/architecture/application-boundaries.md)
 - **Local Environment:** [docs/development/local-environment.md](docs/development/local-environment.md)

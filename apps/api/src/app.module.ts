@@ -5,6 +5,8 @@ import { HealthController } from './health/health.controller';
 import { AuthModule } from './common/auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { QuotaModule } from './common/quota/quota.module';
+import { ConversationModule } from './modules/conversation/conversation.module';
+import { MessageModule } from './modules/message/message.module';
 import { JwtAuthGuard } from './common/auth/jwt.guard';
 import { QuotaGuard } from './common/quota/quota.guard';
 import { quotaConfig } from './common/quota/quota.config';
@@ -20,6 +22,8 @@ import { databaseConfig } from './database/database.config';
     DatabaseModule,
     AuthModule,
     QuotaModule,
+    ConversationModule,
+    MessageModule,
   ],
   controllers: [HealthController],
   providers: [

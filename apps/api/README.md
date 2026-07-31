@@ -1,7 +1,8 @@
 # API Service
 
 VicTenancy.app NestJS API service (`@victenancy/api`).
-Implemented in Step 14a; business endpoints begin in Step 15.
+Infrastructure was established in Steps 14a–14d; Step 15 implements the first
+versioned business endpoints.
 
 ## Ownership
 
@@ -16,8 +17,9 @@ Implemented in Step 14a; business endpoints begin in Step 15.
 ```text
 src/
   bootstrap/        # Nest HTTP app factory (shared by main.ts and lambda.ts)
-  modules/          # Domain modules (health, conversations, messages, jobs)
-    health/         #   GET /health → { "status": "ok" } (no database dependency)
+  modules/          # Domain modules (conversations, messages)
+    conversation/   #   /v1/conversations CRUD + cursor pagination
+    message/        #   /v1/conversations/:id/messages + queued jobs
   common/
     auth/           #   JWT guard, SupabaseAuthService, @Public(), @CurrentUser()
       auth.module.ts
@@ -26,6 +28,7 @@ src/
       supabase-auth.service.ts # JWKS + /auth/v1/user fallback
     correlation/     #   X-Request-Id middleware, AsyncLocalStorage context
     dto/             #   Shared DTOs (pagination bounds)
+    pagination/      #   Strict opaque cursor codec and page response envelope
     logging/         #   Structured response-finish request logging middleware
     quota/           #   Per-user quota guard, service, config
   database/         # Prisma service (lazy connect), database config
@@ -70,6 +73,22 @@ operations.
 | Request timeout | 30 seconds | Node `requestTimeout`; streaming/Agent endpoints will need explicit overrides |
 | Validation | Global `ValidationPipe` | whitelist, forbidNonWhitelisted, transform, stopAtFirstError |
 | Quota table | `request_quota_counters` | RLS enabled, no browser access; SECURITY INVOKER function; stale cleanup inside function call |
+
+## CRUD API (Step 15)
+
+All business endpoints require a Supabase access token and use the `/v1` prefix:
+
+- `GET` / `POST` `/v1/conversations`
+- `GET` / `PATCH` / `DELETE` `/v1/conversations/:conversationId`
+- `GET` / `POST` `/v1/conversations/:conversationId/messages`
+
+Message submission requires a UUID `Idempotency-Key`; it atomically creates a
+user message and a `queued` agent job. The API never invokes the Agent Runtime
+in this step. Login, OAuth, logout, refresh, and password recovery remain
+Supabase Auth responsibilities, not NestJS routes.
+
+See [`docs/api/application-api.md`](../../docs/api/application-api.md) for the
+complete request, response, pagination, and error contracts.
 
 ## Getting Started
 
