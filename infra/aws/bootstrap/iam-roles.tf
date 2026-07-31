@@ -161,8 +161,9 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "lambda:UpdateFunctionConfiguration", "lambda:CreateAlias",
           "lambda:UpdateAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
           "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
+          "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
-          "lambda:TagResource", "lambda:UntagResource",
+          "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-api",
@@ -211,7 +212,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
           "cloudwatch:DescribeAlarms", "cloudwatch:TagResource",
-          "cloudwatch:ListTagsForResource",
+          "cloudwatch:UntagResource", "cloudwatch:ListTagsForResource",
         ]
         Resource = [
           "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:victenancy-staging*",
@@ -300,8 +301,9 @@ resource "aws_iam_role_policy" "deploy_production" {
           "lambda:UpdateFunctionConfiguration", "lambda:CreateAlias",
           "lambda:UpdateAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
           "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
+          "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
-          "lambda:TagResource", "lambda:UntagResource",
+          "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-api",
@@ -350,7 +352,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms",
           "cloudwatch:DescribeAlarms", "cloudwatch:TagResource",
-          "cloudwatch:ListTagsForResource",
+          "cloudwatch:UntagResource", "cloudwatch:ListTagsForResource",
         ]
         Resource = [
           "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:victenancy-production*",
