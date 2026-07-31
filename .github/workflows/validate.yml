@@ -9,10 +9,15 @@ on:
       - apps/api/src/**
       - apps/api/test/**
       - apps/api/prisma/**
+      - apps/api/Dockerfile.lambda
+      - apps/api/Dockerfile.lambda.dockerignore
       - apps/api/package.json
       - package.json
       - package-lock.json
+      - infra/aws/**
       - .github/workflows/validate.yml
+      - .github/workflows/deploy-api-staging.yml
+      - .github/workflows/deploy-api-production.yml
 
 permissions:
   contents: read
@@ -102,3 +107,76 @@ jobs:
 
       - name: Integration tests
         run: npm run test:integration -w @victenancy/api
+
+  infra-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Docker image
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            -f apps/api/Dockerfile.lambda \
+            -t victenancy-api:pr-check \
+            .
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.10.0"
+
+      - name: Terraform fmt — check all roots
+        working-directory: infra/aws
+        run: terraform fmt -check -recursive
+
+      - name: Terraform validate — bootstrap
+        working-directory: infra/aws/bootstrap
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Terraform validate — api-runtime module
+        working-directory: infra/aws/modules/api-runtime
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Terraform validate — staging root
+        working-directory: infra/aws/environments/staging
+        env:
+          TF_VAR_image_uri: "dummy.dkr.ecr.ap-southeast-2.amazonaws.com/victenancy-api@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+          TF_VAR_source_git_sha: "0000000000000000000000000000000000000000"
+          TF_VAR_supabase_project_ref: "dummy"
+          TF_VAR_supabase_publishable_key: "dummy"
+          TF_VAR_state_bucket_name: "dummy"
+          TF_VAR_github_org: "dummy"
+          TF_VAR_github_repo: "dummy"
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: Terraform validate — production root
+        working-directory: infra/aws/environments/production
+        env:
+          TF_VAR_image_uri: "dummy.dkr.ecr.ap-southeast-2.amazonaws.com/victenancy-api@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+          TF_VAR_source_git_sha: "0000000000000000000000000000000000000000"
+          TF_VAR_supabase_project_ref: "dummy"
+          TF_VAR_supabase_publishable_key: "dummy"
+          TF_VAR_state_bucket_name: "dummy"
+          TF_VAR_github_org: "dummy"
+          TF_VAR_github_repo: "dummy"
+        run: |
+          terraform init -backend=false
+          terraform validate
