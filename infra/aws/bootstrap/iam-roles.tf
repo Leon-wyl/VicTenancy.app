@@ -160,7 +160,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "lambda:CreateFunction", "lambda:UpdateFunctionCode",
           "lambda:UpdateFunctionConfiguration", "lambda:CreateAlias",
           "lambda:UpdateAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
-          "lambda:GetAlias", "lambda:ListVersionsByFunction",
+          "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource",
         ]
@@ -174,6 +174,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "apigateway:POST", "apigateway:PUT", "apigateway:PATCH",
           "apigateway:DELETE", "apigateway:GET",
+          "apigateway:TagResource", "apigateway:UntagResource",
         ]
         Resource = [
           "arn:aws:apigateway:${var.region}::/apis",
@@ -298,7 +299,7 @@ resource "aws_iam_role_policy" "deploy_production" {
           "lambda:CreateFunction", "lambda:UpdateFunctionCode",
           "lambda:UpdateFunctionConfiguration", "lambda:CreateAlias",
           "lambda:UpdateAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
-          "lambda:GetAlias", "lambda:ListVersionsByFunction",
+          "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource",
         ]
@@ -312,6 +313,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "apigateway:POST", "apigateway:PUT", "apigateway:PATCH",
           "apigateway:DELETE", "apigateway:GET",
+          "apigateway:TagResource", "apigateway:UntagResource",
         ]
         Resource = [
           "arn:aws:apigateway:${var.region}::/apis",

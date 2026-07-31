@@ -87,6 +87,39 @@ resource "aws_ecr_repository" "api" {
   tags = local.common_tags
 }
 
+# Lambda retrieves image layers as an AWS service, independently of the
+# GitHub deployment role. Limit access to this account's two managed functions.
+resource "aws_ecr_repository_policy" "lambda_image_retrieval" {
+  repository = aws_ecr_repository.api.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowVicTenancyLambdaImageRetrieval"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = [
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+        ]
+        Condition = {
+          StringEquals = {
+            "aws:SourceAccount" = data.aws_caller_identity.current.account_id
+          }
+          ArnLike = {
+            "aws:SourceArn" = [
+              "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-api",
+              "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-api",
+            ]
+          }
+        }
+      },
+    ]
+  })
+}
+
 resource "aws_ecr_lifecycle_policy" "api" {
   repository = aws_ecr_repository.api.name
   policy = jsonencode({

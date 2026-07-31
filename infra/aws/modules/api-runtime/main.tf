@@ -37,6 +37,7 @@ resource "aws_lambda_function" "api" {
   memory_size                    = var.memory_mb
   timeout                        = 28
   reserved_concurrent_executions = var.reserved_concurrency
+  publish                        = true
   environment { variables = local.lambda_env }
   tags       = var.tags
   depends_on = [aws_cloudwatch_log_group.lambda]
