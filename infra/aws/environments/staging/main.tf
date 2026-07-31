@@ -17,7 +17,9 @@ module "api" {
   runtime_secret_arn       = data.terraform_remote_state.bootstrap.outputs.runtime_secret_arn_staging
   supabase_project_ref     = var.supabase_project_ref
   supabase_publishable_key = var.supabase_publishable_key
-  reserved_concurrency     = 5
+  # The account concurrency quota is 10, and AWS requires at least 10
+  # unreserved executions. Keep this function in the shared pool.
+  reserved_concurrency     = -1
   memory_mb                = 512
   log_level                = "info"
   requests_per_minute      = 20

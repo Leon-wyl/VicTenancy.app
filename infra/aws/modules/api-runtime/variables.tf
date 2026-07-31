@@ -36,8 +36,16 @@ variable "supabase_publishable_key" {
 
 variable "reserved_concurrency" {
   type        = number
-  description = "Reserved concurrent Lambda executions"
-  default     = 5
+  description = "Reserved concurrent Lambda executions; use -1 to leave the function unreserved in the account concurrency pool"
+  default     = -1
+
+  validation {
+    condition = (
+      (var.reserved_concurrency == -1 || var.reserved_concurrency >= 0) &&
+      floor(var.reserved_concurrency) == var.reserved_concurrency
+    )
+    error_message = "reserved_concurrency must be -1 (unreserved) or a non-negative integer."
+  }
 }
 
 variable "memory_mb" {
