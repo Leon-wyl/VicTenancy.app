@@ -118,12 +118,22 @@ Schema changes are promoted exclusively through CI:
 - **Staging**: auto-promotes on merge to main; `supabase db push` + migration history verification + JWKS smoke
 - **Production**: manual dispatch from main; verifies staging deployment success → reviewer approval gate → `supabase db push` + verification
 
+### API Deployment
+
+The NestJS API is deployed as a Lambda container image behind API Gateway HTTP API v2:
+
+- **Staging**: auto-deploys on push to main (when API or infra changes); OIDC → build → push ECR → Terraform apply → smoke test
+- **Production**: manual dispatch from main; verifies staging API deploy succeeded → approval gate → deploy same ECR digest
+
+See [`docs/operations/aws-api-deployment.md`](docs/operations/aws-api-deployment.md) for the full deployment guide.
+
 See [`.github/workflows/`](.github/workflows/) for the full pipeline definitions.
 
 ## API Contracts
 
 - [Agent Runtime Integration](docs/integrations/agent-runtime.md)
 - [Application API](docs/api/application-api.md)
+- [API Deployment](docs/operations/aws-api-deployment.md)
 - [Application Boundaries](docs/architecture/application-boundaries.md)
 - [Local Development Environment](docs/development/local-environment.md)
 

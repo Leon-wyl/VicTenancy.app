@@ -1,0 +1,156 @@
+name: Deploy API Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+concurrency:
+  group: api-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  verify-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Verify staging API workflow succeeded for this commit
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const SHA = context.sha;
+
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy-api-staging.yml',
+              head_sha: SHA,
+              status: 'completed',
+              per_page: 20,
+            });
+
+            if (runs.data.workflow_runs.length === 0) {
+              core.setFailed(
+                `No deploy-api-staging.yml workflow run found for commit ${SHA}. ` +
+                'Push to main or trigger deploy-api-staging.yml first.'
+              );
+            }
+
+            let foundSuccess = false;
+            for (const run of runs.data.workflow_runs) {
+              if (run.conclusion === 'success') {
+                foundSuccess = true;
+                break;
+              }
+            }
+
+            if (!foundSuccess) {
+              core.setFailed(
+                `No successful deploy-api-staging.yml run for commit ${SHA}. ` +
+                'Ensure staging deployment completed successfully.'
+              );
+            }
+
+            core.info(
+              `Verified: commit ${SHA} has a successful deploy-api-staging.yml run`
+            );
+
+  deploy:
+    needs: verify-staging
+    environment:
+      name: production
+    runs-on: ubuntu-latest
+    env:
+      TF_VAR_region: ${{ vars.AWS_REGION }}
+      TF_VAR_state_bucket_name: ${{ vars.AWS_TF_STATE_BUCKET }}
+      TF_VAR_supabase_project_ref: ${{ vars.SUPABASE_PROJECT_REF }}
+      TF_VAR_supabase_publishable_key: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      TF_VAR_github_org: ${{ github.repository_owner }}
+      TF_VAR_github_repo: ${{ github.event.repository.name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Configure AWS credentials
+        id: aws-credentials
+        uses: aws-actions/configure-aws-credentials@451ce2a72e8d729a59ebeaacab82dbce58e7af4c # v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: github-deploy-api-production
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@d539f0932e70871a027e9d5a9d8fc38589180a64 # v2
+        with:
+          registries: ${{ steps.aws-credentials.outputs.aws-account-id }}
+
+      - name: Retrieve staging image digest
+        id: digest
+        run: |
+          IMAGE_TAG="${{ github.sha }}"
+          ECR_REPO_URL="${{ steps.aws-credentials.outputs.aws-account-id }}.dkr.ecr.${{ vars.AWS_REGION }}.amazonaws.com/victenancy-api"
+
+          DIGEST=$(aws ecr describe-images \
+            --repository-name victenancy-api \
+            --image-ids imageTag="${IMAGE_TAG}" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)
+
+          IMAGE_URI="${ECR_REPO_URL}@${DIGEST}"
+          echo "image_uri=${IMAGE_URI}" >> $GITHUB_OUTPUT
+          echo "Using image: ${IMAGE_URI}"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.10.0"
+
+      - name: Terraform fmt
+        working-directory: infra/aws
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init and validate — production
+        working-directory: infra/aws/environments/production
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ vars.AWS_TF_STATE_BUCKET }}" \
+            -backend-config="key=api/production/terraform.tfstate" \
+            -backend-config="region=${{ vars.AWS_REGION }}" \
+            -backend-config="encrypt=true"
+          terraform validate
+
+      - name: Terraform plan — production
+        id: plan
+        working-directory: infra/aws/environments/production
+        env:
+          TF_VAR_image_uri: ${{ steps.digest.outputs.image_uri }}
+          TF_VAR_source_git_sha: ${{ github.sha }}
+        run: |
+          terraform plan \
+            -out=tfplan \
+            -var="image_uri=${{ steps.digest.outputs.image_uri }}" \
+            -var="source_git_sha=${{ github.sha }}"
+
+      - name: Terraform apply — production
+        working-directory: infra/aws/environments/production
+        run: terraform apply -auto-approve tfplan
+
+      - name: Smoke test — health
+        run: |
+          API_URL=$(terraform -chdir=infra/aws/environments/production output -raw api_endpoint)
+          echo "Testing ${API_URL}/health"
+          curl -fsS "${API_URL}/health" | jq -e '.status == "ok"'
+
+      - name: Smoke test — auth required
+        run: |
+          API_URL=$(terraform -chdir=infra/aws/environments/production output -raw api_endpoint)
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}/auth/me")
+          if [ "$HTTP_CODE" != "401" ]; then
+            echo "::error::Expected 401 from /auth/me without token, got ${HTTP_CODE}"
+            exit 1
+          fi

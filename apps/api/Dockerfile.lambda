@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+# Stage: builder — compile NestJS app and install production deps
+FROM public.ecr.aws/sam/build-nodejs22.x AS builder
+
+WORKDIR /build
+
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+
+RUN npm ci --workspace=@victenancy/api --include-workspace-root
+
+COPY apps/api/tsconfig.json apps/api/nest-cli.json apps/api/
+
+COPY apps/api/prisma apps/api/prisma/
+COPY apps/api/src apps/api/src/
+
+WORKDIR /build/apps/api
+ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+RUN npx prisma generate
+RUN npm run build
+
+WORKDIR /build
+RUN npm prune --omit=dev
+
+# Stage: runtime — Lambda Node.js 22 with compiled API
+FROM public.ecr.aws/lambda/nodejs:22
+
+COPY --from=builder /build/node_modules ${LAMBDA_TASK_ROOT}/node_modules
+COPY --from=builder /build/apps/api/dist ${LAMBDA_TASK_ROOT}/dist
+COPY --from=builder /build/apps/api/prisma ${LAMBDA_TASK_ROOT}/prisma
+COPY --from=builder /build/package.json /build/package-lock.json ${LAMBDA_TASK_ROOT}/
+
+ENV NODE_ENV=production
+
+CMD ["dist/lambda.handler"]

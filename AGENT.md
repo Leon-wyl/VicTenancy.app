@@ -21,14 +21,16 @@ This agent must follow `CONTRIBUTING.md` for all branching, commit, linting, and
 | Realtime | Supabase Realtime — planned (Step 18) |
 | Vector Database | Qdrant (local dev only) |
 | Agent Runtime | AusTenancy.ai (external; integration deferred to Step 16) |
-| Deployment | OpenNext -> CloudFront + Lambda@Edge + S3 — planned (Step 20) |
+| Deployment | AWS Lambda + API Gateway HTTP API v2 — Step 15a in progress |
+| AWS Infrastructure | Terraform IaC: infra/aws/ (bootstrap + api-runtime module + environments) — Step 15a in progress |
+| CloudFront | Planned — Step 20 |
 | E2E Testing | Playwright — planned (Step 19) |
 | Managed Supabase | Supabase Cloud staging + production, CI-driven migration promotion |
 | Language | TypeScript 5.x, Node 22 |
 | Lint/Format | ESLint 9 + Prettier |
 | Workspace | npm workspaces (`apps/*`) |
 | Infrastructure (local) | Docker Compose v2 |
-| Infrastructure (cloud) | Supabase + AWS — planned |
+| Infrastructure (cloud) | Supabase + AWS Lambda + API Gateway — Step 15a in progress |
 
 ## Setup
 
@@ -75,6 +77,15 @@ promoted exclusively through CI workflows:
 
 See [`docs/operations/managed-supabase.md`](docs/operations/managed-supabase.md) for
 environment identities, connection modes, and access policies.
+
+### Cloud (API Deployment)
+
+The NestJS API is deployed as a Lambda container image behind API Gateway HTTP API v2.
+Terraform infrastructure is in `infra/aws/` and deployment is automated through
+GitHub Actions with OIDC. Runtime configuration is injected via AWS Secrets Manager.
+
+See [`docs/operations/aws-api-deployment.md`](docs/operations/aws-api-deployment.md) for
+the complete deployment architecture, bootstrap runbook, and rollback procedures.
 
 **Service endpoints after startup:**
 
@@ -203,9 +214,17 @@ docs/
     local-auth-setup.md        #   Auth environment configuration guide
   integrations/
     agent-runtime.md           #   Agent Runtime consumer guide
+  operations/
+    aws-api-deployment.md      #   API deployment architecture and runbook
+    managed-supabase.md        #   Managed Supabase environments
   api/
     application-api.md         #   Versioned application CRUD contract
   roadmap.md                   #   Full delivery plan (Steps 14a-21)
+infra/aws/                      # Terraform IaC — API runtime
+  bootstrap/                    #   Account-level resources (ECR, OIDC, IAM)
+  modules/api-runtime/          #   Reusable Lambda + API Gateway module
+  environments/staging/         #   Staging deployment root
+  environments/production/      #   Production deployment root
 scripts/                       # Local verification, DB, and release helpers
 tests/
   e2e/                         # Playwright (Step 19)
@@ -223,4 +242,5 @@ See [docs/roadmap.md](docs/roadmap.md) for the full delivery plan.
 - **Agent Runtime:** [docs/integrations/agent-runtime.md](docs/integrations/agent-runtime.md)
 - **Application API:** [docs/api/application-api.md](docs/api/application-api.md)
 - **Application Boundaries:** [docs/architecture/application-boundaries.md](docs/architecture/application-boundaries.md)
+- **API Deployment:** [docs/operations/aws-api-deployment.md](docs/operations/aws-api-deployment.md)
 - **Local Environment:** [docs/development/local-environment.md](docs/development/local-environment.md)
