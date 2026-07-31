@@ -26,6 +26,8 @@ services:
       DIRECT_DATABASE_URL: "postgresql://postgres:postgres@host.docker.internal:54322/postgres"
       QDRANT_URL: "http://qdrant:6333"
       SUPABASE_URL: "http://host.docker.internal:54321"
+      # Network address used by the container differs from the token issuer.
+      SUPABASE_JWT_ISSUER: "http://127.0.0.1:54321/auth/v1"
       NODE_ENV: development
       LOG_LEVEL: debug
       REQUESTS_PER_MINUTE: 20
