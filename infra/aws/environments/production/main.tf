@@ -19,10 +19,10 @@ module "api" {
   supabase_publishable_key = var.supabase_publishable_key
   # The account concurrency quota is 10, and AWS requires at least 10
   # unreserved executions. Keep this function in the shared pool.
-  reserved_concurrency     = -1
-  memory_mb                = 512
-  log_level                = "info"
-  requests_per_minute      = 20
-  requests_per_day         = 200
-  tags                     = local.tags
+  reserved_concurrency = -1
+  memory_mb            = 512
+  log_level            = "info"
+  requests_per_minute  = 20
+  requests_per_day     = 200
+  tags                 = local.tags
 }
