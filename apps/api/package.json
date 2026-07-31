@@ -12,11 +12,11 @@
     "lint:fix": "eslint \"{src,test}/**/*.ts\" --fix",
     "format": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:fix": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test": "jest --testPathIgnorePatterns '/auth/rls\\.spec\\.ts$|/migration\\.spec\\.ts$|/quota/quota\\.integration\\.spec\\.ts$'",
+    "test": "jest --testPathIgnorePatterns '/auth/rls\\.spec\\.ts$|/migration\\.spec\\.ts$|/quota/quota\\.integration\\.spec\\.ts$|/conversation/.*\\.integration\\.spec\\.ts$|/message/.*\\.integration\\.spec\\.ts$'",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "prisma:generate": "prisma generate",
-    "test:integration": "jest --testRegex 'test/(auth/rls|migration|quota/quota\\.integration)\\.spec\\.ts$'"
+    "test:integration": "jest --testRegex 'test/(auth/rls|migration|quota/quota\\.integration|conversation/.*integration|message/.*integration)\\.spec\\.ts$'"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.0",
