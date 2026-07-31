@@ -41,6 +41,10 @@ resource "aws_lambda_function" "api" {
   environment { variables = local.lambda_env }
   tags       = var.tags
   depends_on = [aws_cloudwatch_log_group.lambda]
+
+  # Releases update this function in place. A replacement or removal must be
+  # an explicit infrastructure decision, never a side effect of a deploy plan.
+  lifecycle { prevent_destroy = true }
 }
 
 resource "aws_lambda_alias" "live" {
@@ -53,6 +57,10 @@ resource "aws_apigatewayv2_api" "api" {
   name          = "${local.name_prefix}-api"
   protocol_type = "HTTP"
   tags          = var.tags
+
+  # Keep the public endpoint stable and prevent a partial deployment from
+  # deleting it. Normal route, integration, stage, and tag updates continue.
+  lifecycle { prevent_destroy = true }
 }
 
 resource "aws_apigatewayv2_stage" "default" {
