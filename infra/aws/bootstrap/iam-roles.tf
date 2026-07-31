@@ -2,8 +2,8 @@ locals {
   bootstrap_state_key      = "bootstrap/terraform.tfstate"
   api_staging_state_key    = "api/staging/terraform.tfstate"
   api_production_state_key = "api/production/terraform.tfstate"
-  staging_oidc_sub         = "repo:${var.github_org}/${var.github_repo}:environment:staging"
-  production_oidc_sub      = "repo:${var.github_org}/${var.github_repo}:environment:production"
+  staging_oidc_sub         = "repo:${var.github_org}@${var.github_org_id}/${var.github_repo}@${var.github_repo_id}:environment:staging"
+  production_oidc_sub      = "repo:${var.github_org}@${var.github_org_id}/${var.github_repo}@${var.github_repo_id}:environment:production"
 }
 
 resource "aws_iam_role" "lambda_execution_staging" {
@@ -148,7 +148,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Effect = "Allow"
         Action = [
           "ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer", "ecr:PutImage",
+          "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer", "ecr:PutImage",
           "ecr:InitiateLayerUpload", "ecr:UploadLayerPart",
           "ecr:CompleteLayerUpload", "ecr:DescribeImages", "ecr:DescribeRepositories",
         ]
@@ -176,7 +176,9 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "apigateway:DELETE", "apigateway:GET",
         ]
         Resource = [
+          "arn:aws:apigateway:${var.region}::/apis",
           "arn:aws:apigateway:${var.region}::/apis/*",
+          "arn:aws:apigateway:${var.region}::/tags/*",
           "arn:aws:apigateway:${var.region}::/apis/*/stages/*",
           "arn:aws:apigateway:${var.region}::/apis/*/routes/*",
           "arn:aws:apigateway:${var.region}::/apis/*/integrations/*",
@@ -186,7 +188,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Effect = "Allow"
         Action = [
           "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy",
-          "logs:TagResource", "logs:UntagResource",
+          "logs:TagResource", "logs:UntagResource", "logs:ListTagsForResource",
         ]
         Resource = [
           "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/victenancy-staging*",
@@ -284,7 +286,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Effect = "Allow"
         Action = [
           "ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer",
           "ecr:DescribeImages", "ecr:DescribeRepositories",
         ]
         Resource = ["*"]
@@ -311,7 +313,9 @@ resource "aws_iam_role_policy" "deploy_production" {
           "apigateway:DELETE", "apigateway:GET",
         ]
         Resource = [
+          "arn:aws:apigateway:${var.region}::/apis",
           "arn:aws:apigateway:${var.region}::/apis/*",
+          "arn:aws:apigateway:${var.region}::/tags/*",
           "arn:aws:apigateway:${var.region}::/apis/*/stages/*",
           "arn:aws:apigateway:${var.region}::/apis/*/routes/*",
           "arn:aws:apigateway:${var.region}::/apis/*/integrations/*",
@@ -321,7 +325,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Effect = "Allow"
         Action = [
           "logs:CreateLogGroup", "logs:DeleteLogGroup", "logs:PutRetentionPolicy",
-          "logs:TagResource", "logs:UntagResource",
+          "logs:TagResource", "logs:UntagResource", "logs:ListTagsForResource",
         ]
         Resource = [
           "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/victenancy-production*",
