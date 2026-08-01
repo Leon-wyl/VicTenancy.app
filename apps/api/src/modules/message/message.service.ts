@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { AuthorRole, JobStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
@@ -15,6 +16,7 @@ import {
   decodeMessageCursor,
   encodeCursor,
 } from '../../common/pagination/cursor-codec';
+import { SqsOutboxPublisher } from '../agent-orchestration/sqs-outbox-publisher';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 50;
@@ -53,7 +55,11 @@ interface CreateParams {
 
 @Injectable()
 export class MessageService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    private readonly outboxPublisher?: SqsOutboxPublisher,
+  ) {}
 
   async findAllByConversation(
     userId: string,
@@ -128,6 +134,11 @@ export class MessageService {
         idempotencyKey,
         correlationId,
       });
+
+      if (this.outboxPublisher) {
+        void this.outboxPublisher.tryPublish(result.job.id);
+      }
+
       return { result, isReplay: false };
     } catch (e: unknown) {
       if (!isIdempotencyUniqueViolation(e)) throw e;
@@ -210,6 +221,12 @@ export class MessageService {
                 status: JobStatus.queued,
                 idempotencyKey: params.idempotencyKey,
                 correlationId: params.correlationId,
+              },
+            });
+
+            await tx.agentJobOutbox.create({
+              data: {
+                agentJobId: job.id,
               },
             });
 
