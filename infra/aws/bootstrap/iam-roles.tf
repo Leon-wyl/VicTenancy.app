@@ -166,9 +166,6 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
-          "lambda:CreateEventSourceMapping", "lambda:UpdateEventSourceMapping",
-          "lambda:DeleteEventSourceMapping", "lambda:GetEventSourceMapping",
-          "lambda:ListEventSourceMappings",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-api",
@@ -195,6 +192,23 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "arn:aws:apigateway:${var.region}::/apis/*/stages/*",
           "arn:aws:apigateway:${var.region}::/apis/*/routes/*",
           "arn:aws:apigateway:${var.region}::/apis/*/integrations/*",
+        ]
+      },
+      {
+        # Event source mapping APIs authorize against the mapping ARN, not the
+        # Lambda function ARN used by the function lifecycle statement above.
+        Effect   = "Allow"
+        Action   = ["lambda:CreateEventSourceMapping"]
+        Resource = ["*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:UpdateEventSourceMapping", "lambda:DeleteEventSourceMapping",
+          "lambda:GetEventSourceMapping",
+        ]
+        Resource = [
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:event-source-mapping:*",
         ]
       },
       {
@@ -379,9 +393,6 @@ resource "aws_iam_role_policy" "deploy_production" {
           "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
-          "lambda:CreateEventSourceMapping", "lambda:UpdateEventSourceMapping",
-          "lambda:DeleteEventSourceMapping", "lambda:GetEventSourceMapping",
-          "lambda:ListEventSourceMappings",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-api",
@@ -408,6 +419,23 @@ resource "aws_iam_role_policy" "deploy_production" {
           "arn:aws:apigateway:${var.region}::/apis/*/stages/*",
           "arn:aws:apigateway:${var.region}::/apis/*/routes/*",
           "arn:aws:apigateway:${var.region}::/apis/*/integrations/*",
+        ]
+      },
+      {
+        # Event source mapping APIs authorize against the mapping ARN, not the
+        # Lambda function ARN used by the function lifecycle statement above.
+        Effect   = "Allow"
+        Action   = ["lambda:CreateEventSourceMapping"]
+        Resource = ["*"]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "lambda:UpdateEventSourceMapping", "lambda:DeleteEventSourceMapping",
+          "lambda:GetEventSourceMapping",
+        ]
+        Resource = [
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:event-source-mapping:*",
         ]
       },
       {
