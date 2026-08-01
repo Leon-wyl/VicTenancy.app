@@ -265,7 +265,8 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
           "iam:DeleteRolePolicy", "iam:GetRole", "iam:UpdateAssumeRolePolicy",
-          "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags",
+          "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole", "iam:ListRoleTags",
           "iam:TagRole", "iam:UntagRole", "iam:PassRole",
         ]
         Resource = [
@@ -279,6 +280,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "iam:GetRole", "iam:PassRole", "iam:PutRolePolicy",
           "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
         ]
         Resource = [aws_iam_role.lambda_execution_staging.arn]
       },
@@ -289,7 +291,8 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "lambda:GetAccountSettings", "lambda:ListFunctions",
           "lambda:ListEventSourceMappings", "sqs:ListQueues",
-          "events:ListRuleNamesByTarget",
+          "events:ListRules", "events:ListRuleNamesByTarget",
+          "events:ListTargetsByRule",
         ]
         Resource = ["*"]
       },
@@ -475,7 +478,8 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
           "iam:DeleteRolePolicy", "iam:GetRole", "iam:UpdateAssumeRolePolicy",
-          "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags",
+          "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies",
+          "iam:ListInstanceProfilesForRole", "iam:ListRoleTags",
           "iam:TagRole", "iam:UntagRole", "iam:PassRole",
         ]
         Resource = [
@@ -489,6 +493,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "iam:GetRole", "iam:PassRole", "iam:PutRolePolicy",
           "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
+          "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole",
         ]
         Resource = [aws_iam_role.lambda_execution_production.arn]
       },
@@ -499,7 +504,8 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "lambda:GetAccountSettings", "lambda:ListFunctions",
           "lambda:ListEventSourceMappings", "sqs:ListQueues",
-          "events:ListRuleNamesByTarget",
+          "events:ListRules", "events:ListRuleNamesByTarget",
+          "events:ListTargetsByRule",
         ]
         Resource = ["*"]
       },
