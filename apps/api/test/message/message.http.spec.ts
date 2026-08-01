@@ -67,6 +67,7 @@ describe('Message HTTP (e2e)', () => {
     conversation: { findFirst: jest.Mock; updateMany: jest.Mock };
     message: { findMany: jest.Mock; create: jest.Mock };
     agentJob: { findUnique: jest.Mock; create: jest.Mock };
+    agentJobOutbox: { create: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -75,6 +76,7 @@ describe('Message HTTP (e2e)', () => {
       conversation: { findFirst: jest.fn(), updateMany: jest.fn() },
       message: { findMany: jest.fn(), create: jest.fn() },
       agentJob: { findUnique: jest.fn(), create: jest.fn() },
+      agentJobOutbox: { create: jest.fn() },
       $transaction: jest.fn(),
     };
 
@@ -119,6 +121,7 @@ describe('Message HTTP (e2e)', () => {
         },
         message: { create: jest.fn().mockResolvedValue(mockMessageEntity) },
         agentJob: { create: jest.fn().mockResolvedValue(mockJobEntity) },
+        agentJobOutbox: { create: jest.fn() },
       }),
     );
   };

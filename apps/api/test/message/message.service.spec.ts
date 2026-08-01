@@ -14,6 +14,7 @@ describe('MessageService', () => {
     conversation: { findFirst: jest.Mock; updateMany: jest.Mock };
     message: { findMany: jest.Mock; create: jest.Mock };
     agentJob: { findUnique: jest.Mock; create: jest.Mock };
+    agentJobOutbox: { create: jest.Mock };
     $transaction: jest.Mock;
   };
 
@@ -22,6 +23,7 @@ describe('MessageService', () => {
       conversation: { findFirst: jest.fn(), updateMany: jest.fn() },
       message: { findMany: jest.fn(), create: jest.fn() },
       agentJob: { findUnique: jest.fn(), create: jest.fn() },
+      agentJobOutbox: { create: jest.fn() },
       $transaction: jest.fn(),
     };
 
@@ -95,6 +97,7 @@ describe('MessageService', () => {
           },
           message: { create: jest.fn().mockResolvedValue(msg) },
           agentJob: { create: jest.fn().mockResolvedValue(job) },
+            agentJobOutbox: { create: jest.fn() },
         }),
       );
 
@@ -144,6 +147,7 @@ describe('MessageService', () => {
           },
           message: { create: jest.fn() },
           agentJob: { create: jest.fn() },
+          agentJobOutbox: { create: jest.fn() },
         }),
       );
 
@@ -270,6 +274,7 @@ describe('MessageService', () => {
           },
           message: { create: jest.fn().mockResolvedValue(mockMessage()) },
           agentJob: { create: jest.fn().mockResolvedValue(mockJob()) },
+          agentJobOutbox: { create: jest.fn() },
         });
       });
 

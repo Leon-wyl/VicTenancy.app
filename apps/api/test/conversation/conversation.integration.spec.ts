@@ -7,10 +7,14 @@ import { config } from 'dotenv';
 import { resolve } from 'path';
 import { AppModule } from '../../src/app.module';
 import { configureApp } from '../../src/bootstrap/app.factory';
+import {
+  canonicalSupabaseUrl,
+  useSupabaseTestEnvironment,
+} from '../helpers/local-supabase-env';
 
 config({ path: resolve(__dirname, '../../.env') });
 
-const SUPABASE_URL = process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321';
+const SUPABASE_URL = canonicalSupabaseUrl(process.env.SUPABASE_URL);
 const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY;
 const DIRECT_DATABASE_URL =
   process.env.DIRECT_DATABASE_URL ??
@@ -19,9 +23,11 @@ const DIRECT_DATABASE_URL =
 describe('Conversation CRUD Integration', () => {
   let app: INestApplication;
   let pgPool: Pool;
+  let restoreSupabaseEnvironment: (() => void) | undefined;
   const authUserIds = new Set<string>();
 
   beforeAll(async () => {
+    restoreSupabaseEnvironment = useSupabaseTestEnvironment(SUPABASE_URL);
     pgPool = new Pool({ connectionString: DIRECT_DATABASE_URL });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -40,6 +46,7 @@ describe('Conversation CRUD Integration', () => {
   afterAll(async () => {
     await app.close();
     await pgPool.end();
+    restoreSupabaseEnvironment?.();
   });
 
   async function signUp(email: string) {
