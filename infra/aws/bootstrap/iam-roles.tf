@@ -159,8 +159,10 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "lambda:CreateFunction", "lambda:UpdateFunctionCode",
           "lambda:UpdateFunctionConfiguration", "lambda:CreateAlias",
-          "lambda:UpdateAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
+          "lambda:UpdateAlias", "lambda:DeleteFunction", "lambda:DeleteAlias",
+          "lambda:GetFunction", "lambda:GetFunctionConfiguration",
           "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
+          "lambda:ListAliases", "lambda:GetFunctionCodeSigningConfig",
           "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
@@ -232,6 +234,7 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Action = [
           "sqs:CreateQueue", "sqs:DeleteQueue", "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl", "sqs:ListQueues", "sqs:SetQueueAttributes",
+          "sqs:ListQueueTags", "sqs:ListDeadLetterSourceQueues",
           "sqs:TagQueue", "sqs:UntagQueue",
         ]
         Resource = [
@@ -242,7 +245,8 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Effect = "Allow"
         Action = [
           "events:PutRule", "events:PutTargets", "events:DeleteRule",
-          "events:RemoveTargets", "events:DescribeRule",
+          "events:RemoveTargets", "events:DescribeRule", "events:ListTargetsByRule",
+          "events:ListTagsForResource",
           "events:TagResource", "events:UntagResource",
         ]
         Resource = [
@@ -260,7 +264,9 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Effect = "Allow"
         Action = [
           "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
-          "iam:DeleteRolePolicy", "iam:GetRole", "iam:PassRole",
+          "iam:DeleteRolePolicy", "iam:GetRole", "iam:UpdateAssumeRolePolicy",
+          "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags",
+          "iam:TagRole", "iam:UntagRole", "iam:PassRole",
         ]
         Resource = [
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-staging-dispatcher-exec",
@@ -269,9 +275,23 @@ resource "aws_iam_role_policy" "deploy_staging" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = ["iam:GetRole", "iam:PassRole"]
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole", "iam:PassRole", "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
+        ]
         Resource = [aws_iam_role.lambda_execution_staging.arn]
+      },
+      {
+        # These read operations do not support a resource ARN in IAM and are
+        # required by Terraform during provider refresh.
+        Effect = "Allow"
+        Action = [
+          "lambda:GetAccountSettings", "lambda:ListFunctions",
+          "lambda:ListEventSourceMappings", "sqs:ListQueues",
+          "events:ListRuleNamesByTarget",
+        ]
+        Resource = ["*"]
       },
     ]
   })
@@ -349,8 +369,10 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "lambda:CreateFunction", "lambda:UpdateFunctionCode",
           "lambda:UpdateFunctionConfiguration", "lambda:CreateAlias",
-          "lambda:UpdateAlias", "lambda:GetFunction", "lambda:GetFunctionConfiguration",
+          "lambda:UpdateAlias", "lambda:DeleteFunction", "lambda:DeleteAlias",
+          "lambda:GetFunction", "lambda:GetFunctionConfiguration",
           "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
+          "lambda:ListAliases", "lambda:GetFunctionCodeSigningConfig",
           "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
@@ -422,6 +444,7 @@ resource "aws_iam_role_policy" "deploy_production" {
         Action = [
           "sqs:CreateQueue", "sqs:DeleteQueue", "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl", "sqs:ListQueues", "sqs:SetQueueAttributes",
+          "sqs:ListQueueTags", "sqs:ListDeadLetterSourceQueues",
           "sqs:TagQueue", "sqs:UntagQueue",
         ]
         Resource = [
@@ -432,7 +455,8 @@ resource "aws_iam_role_policy" "deploy_production" {
         Effect = "Allow"
         Action = [
           "events:PutRule", "events:PutTargets", "events:DeleteRule",
-          "events:RemoveTargets", "events:DescribeRule",
+          "events:RemoveTargets", "events:DescribeRule", "events:ListTargetsByRule",
+          "events:ListTagsForResource",
           "events:TagResource", "events:UntagResource",
         ]
         Resource = [
@@ -450,7 +474,9 @@ resource "aws_iam_role_policy" "deploy_production" {
         Effect = "Allow"
         Action = [
           "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
-          "iam:DeleteRolePolicy", "iam:GetRole", "iam:PassRole",
+          "iam:DeleteRolePolicy", "iam:GetRole", "iam:UpdateAssumeRolePolicy",
+          "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListRoleTags",
+          "iam:TagRole", "iam:UntagRole", "iam:PassRole",
         ]
         Resource = [
           "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-production-dispatcher-exec",
@@ -459,9 +485,23 @@ resource "aws_iam_role_policy" "deploy_production" {
         ]
       },
       {
-        Effect   = "Allow"
-        Action   = ["iam:GetRole", "iam:PassRole"]
+        Effect = "Allow"
+        Action = [
+          "iam:GetRole", "iam:PassRole", "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:ListRolePolicies",
+        ]
         Resource = [aws_iam_role.lambda_execution_production.arn]
+      },
+      {
+        # These read operations do not support a resource ARN in IAM and are
+        # required by Terraform during provider refresh.
+        Effect = "Allow"
+        Action = [
+          "lambda:GetAccountSettings", "lambda:ListFunctions",
+          "lambda:ListEventSourceMappings", "sqs:ListQueues",
+          "events:ListRuleNamesByTarget",
+        ]
+        Resource = ["*"]
       },
     ]
   })
