@@ -88,8 +88,12 @@ variable "sqs_visibility_timeout_seconds" {
 
 variable "worker_max_concurrency" {
   type        = number
-  description = "Maximum concurrent worker invocations via event-source scaling"
-  default     = 1
+  description = "Maximum concurrent worker invocations via event-source scaling (AWS minimum: 2)"
+  default     = 2
+  validation {
+    condition     = var.worker_max_concurrency >= 2
+    error_message = "worker_max_concurrency must be at least 2 because AWS Lambda SQS event source scaling requires a minimum of 2."
+  }
 }
 
 variable "queue_retention_seconds" {
