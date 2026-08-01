@@ -138,7 +138,7 @@ resource "aws_iam_role_policy" "dispatcher" {
       {
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-        Resource = [aws_cloudwatch_log_group.dispatcher.arn]
+        Resource = ["${aws_cloudwatch_log_group.dispatcher.arn}:*"]
       },
       {
         Effect   = "Allow"
@@ -168,7 +168,7 @@ resource "aws_iam_role_policy" "worker" {
       {
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-        Resource = [aws_cloudwatch_log_group.worker.arn]
+        Resource = ["${aws_cloudwatch_log_group.worker.arn}:*"]
       },
       {
         Effect   = "Allow"
@@ -208,7 +208,7 @@ resource "aws_iam_role_policy" "terminalizer" {
       {
         Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
-        Resource = [aws_cloudwatch_log_group.terminalizer.arn]
+        Resource = ["${aws_cloudwatch_log_group.terminalizer.arn}:*"]
       },
       {
         Effect   = "Allow"
