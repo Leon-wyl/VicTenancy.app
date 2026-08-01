@@ -46,6 +46,7 @@ resource "aws_sqs_queue" "dlq" {
   content_based_deduplication = false
   deduplication_scope         = "queue"
   sqs_managed_sse_enabled     = true
+  visibility_timeout_seconds  = var.dlq_visibility_timeout_seconds
   message_retention_seconds   = var.dlq_retention_seconds
   tags                        = local.common_tags
 }
@@ -287,7 +288,7 @@ resource "aws_lambda_function" "terminalizer" {
   image_uri                      = var.image_uri
   architectures                  = ["x86_64"]
   memory_size                    = 512
-  timeout                        = 60
+  timeout                        = var.terminalizer_timeout_seconds
   reserved_concurrent_executions = -1
   publish                        = true
   image_config {
