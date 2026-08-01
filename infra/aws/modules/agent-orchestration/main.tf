@@ -1,3 +1,7 @@
+data "aws_kms_key" "lambda" {
+  key_id = "alias/aws/lambda"
+}
+
 locals {
   name_prefix = "victenancy-${var.environment}"
 
@@ -137,6 +141,11 @@ resource "aws_iam_role_policy" "dispatcher" {
       },
       {
         Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [data.aws_kms_key.lambda.arn]
+      },
+      {
+        Effect   = "Allow"
         Action   = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = ["${aws_cloudwatch_log_group.dispatcher.arn}:*"]
       },
@@ -164,6 +173,11 @@ resource "aws_iam_role_policy" "worker" {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = [var.runtime_secret_arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [data.aws_kms_key.lambda.arn]
       },
       {
         Effect   = "Allow"
@@ -204,6 +218,11 @@ resource "aws_iam_role_policy" "terminalizer" {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = [var.runtime_secret_arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [data.aws_kms_key.lambda.arn]
       },
       {
         Effect   = "Allow"

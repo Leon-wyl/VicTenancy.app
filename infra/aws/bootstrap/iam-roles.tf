@@ -1,3 +1,7 @@
+data "aws_kms_key" "lambda" {
+  key_id = "alias/aws/lambda"
+}
+
 locals {
   bootstrap_state_key      = "bootstrap/terraform.tfstate"
   api_staging_state_key    = "api/staging/terraform.tfstate"
@@ -55,6 +59,11 @@ resource "aws_iam_role_policy" "lambda_execution_staging" {
       },
       {
         Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [data.aws_kms_key.lambda.arn]
+      },
+      {
+        Effect   = "Allow"
         Action   = ["logs:CreateLogGroup"]
         Resource = ["*"]
       },
@@ -79,6 +88,11 @@ resource "aws_iam_role_policy" "lambda_execution_production" {
         Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = [aws_secretsmanager_secret.runtime_production.arn]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt"]
+        Resource = [data.aws_kms_key.lambda.arn]
       },
       {
         Effect   = "Allow"
