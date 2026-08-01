@@ -169,6 +169,11 @@ resource "aws_iam_role_policy" "deploy_staging" {
         ]
       },
       {
+        Effect   = "Allow"
+        Action   = ["kms:DescribeKey"]
+        Resource = [data.aws_kms_key.lambda.arn]
+      },
+      {
         Effect = "Allow"
         Action = [
           "ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability",
@@ -397,6 +402,11 @@ resource "aws_iam_role_policy" "deploy_production" {
         Resource = [
           "${aws_s3_bucket.terraform_state.arn}/api/production/*",
         ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:DescribeKey"]
+        Resource = [data.aws_kms_key.lambda.arn]
       },
       {
         Effect = "Allow"
