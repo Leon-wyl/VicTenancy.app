@@ -151,10 +151,23 @@ jobs:
           TF_VAR_image_uri: ${{ steps.digest.outputs.image_uri }}
           TF_VAR_source_git_sha: ${{ github.sha }}
         run: |
+          set +e
           terraform plan \
+            -detailed-exitcode \
             -out=tfplan \
             -var="image_uri=${{ steps.digest.outputs.image_uri }}" \
             -var="source_git_sha=${{ github.sha }}"
+          PLAN_EXIT_CODE=$?
+          set -e
+
+          # Terraform detailed exit codes: 0 = no changes, 2 = changes,
+          # 1 (and any other value) = an actual planning error.
+          if [ "${PLAN_EXIT_CODE}" -ne 0 ] && [ "${PLAN_EXIT_CODE}" -ne 2 ]; then
+            echo "Terraform plan failed with exit code ${PLAN_EXIT_CODE}."
+            exit "${PLAN_EXIT_CODE}"
+          fi
+
+          echo "Terraform plan completed with exit code ${PLAN_EXIT_CODE}."
 
       - name: Terraform apply — production
         working-directory: infra/aws/environments/production
