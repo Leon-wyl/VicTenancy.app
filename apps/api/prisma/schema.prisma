@@ -64,35 +64,59 @@ model Message {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   citations    Citation[]
   triggerJobs  AgentJob[]  @relation("TriggerMessage")
+  assistantJob AgentJob?   @relation("AssistantMessage")
 
   @@index([conversationId, createdAt], map: "idx_messages_conversation_time")
   @@map("messages")
 }
 
 model AgentJob {
-  id               String    @id @default(uuid()) @db.Uuid
-  conversationId   String    @map("conversation_id") @db.Uuid
-  triggerMessageId String    @map("trigger_message_id") @db.Uuid
-  ownerUserId      String    @map("owner_user_id") @db.Uuid
-  status           JobStatus @default(queued)
-  idempotencyKey   String    @map("idempotency_key")
-  correlationId    String    @default(uuid()) @map("correlation_id") @db.Uuid
-  attempt          Int       @default(1)
-  maxAttempts      Int       @default(3) @map("max_attempts")
-  leaseUntil       DateTime? @map("lease_until") @db.Timestamptz()
-  nextAttemptAt    DateTime? @map("next_attempt_at") @db.Timestamptz()
-  completedAt      DateTime? @map("completed_at") @db.Timestamptz()
-  errorMetadata    Json?     @map("error_metadata") @db.JsonB
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  id                 String    @id @default(uuid()) @db.Uuid
+  conversationId     String    @map("conversation_id") @db.Uuid
+  triggerMessageId   String    @map("trigger_message_id") @db.Uuid
+  ownerUserId        String    @map("owner_user_id") @db.Uuid
+  status             JobStatus @default(queued)
+  idempotencyKey     String    @map("idempotency_key")
+  correlationId      String    @default(uuid()) @map("correlation_id") @db.Uuid
+  attempt            Int       @default(0)
+  maxAttempts        Int       @default(3) @map("max_attempts")
+  leaseToken         String?   @map("lease_token") @db.Uuid
+  leaseUntil         DateTime? @map("lease_until") @db.Timestamptz()
+  deliveryId         String?   @map("delivery_id") @db.Uuid
+  nextAttemptAt      DateTime? @map("next_attempt_at") @db.Timestamptz()
+  completedAt        DateTime? @map("completed_at") @db.Timestamptz()
+  errorMetadata      Json?     @map("error_metadata") @db.JsonB
+  assistantMessageId String?   @unique @map("assistant_message_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
 
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  triggerMessage Message      @relation("TriggerMessage", fields: [triggerMessageId], references: [id], onDelete: Restrict)
-  owner          User         @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  triggerMessage  Message      @relation("TriggerMessage", fields: [triggerMessageId], references: [id], onDelete: Restrict)
+  assistantMessage Message?    @relation("AssistantMessage", fields: [assistantMessageId], references: [id], onDelete: SetNull)
+  owner           User         @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  outbox          AgentJobOutbox?
 
   @@unique([ownerUserId, idempotencyKey], map: "uq_idempotency_per_owner")
   @@index([conversationId, createdAt], map: "idx_agent_jobs_conversation")
   @@map("agent_jobs")
+}
+
+model AgentJobOutbox {
+  id                  String    @id @default(uuid()) @db.Uuid
+  agentJobId          String    @unique @map("agent_job_id") @db.Uuid
+  availableAt         DateTime  @default(now()) @map("available_at") @db.Timestamptz()
+  publishedAt         DateTime? @map("published_at") @db.Timestamptz()
+  dispatchLeaseToken  String?   @map("dispatch_lease_token") @db.Uuid
+  dispatchLeaseUntil  DateTime? @map("dispatch_lease_until") @db.Timestamptz()
+  deliveryId          String?   @map("delivery_id") @db.Uuid
+  dispatchCount       Int       @default(0) @map("dispatch_count")
+  lastError           Json?     @map("last_error") @db.JsonB
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+
+  agentJob AgentJob @relation(fields: [agentJobId], references: [id], onDelete: Cascade)
+
+  @@map("agent_job_outbox")
 }
 
 model Citation {
