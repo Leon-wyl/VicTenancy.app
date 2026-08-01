@@ -95,7 +95,9 @@ dedup window never strands a retry because every DB-authoritative retry gets a
 | `victenancy-{env}-agent-jobs.fifo` | Pending deliveries (grouped by conversation) | 4 days |
 | `victenancy-{env}-agent-jobs-dlq.fifo` | Worker crashes / unhandled failures | 14 days |
 
-- **Visibility timeout**: 150s (≥ 120s job lease + buffer)
+- **Main queue visibility timeout**: 150s (≥ 120s job lease + buffer)
+- **DLQ visibility timeout**: 90s (≥ 60s terminalizer Lambda timeout; required by Lambda/SQS)
+- **Terminalizer timeout**: 60s
 - **Redrive maxReceiveCount**: 3 → DLQ after 3rd failed receive
 - **Worker max concurrency**: 2 (event-source `scaling_config.maximum_concurrency`; AWS requires a minimum of 2)
 - **Dispatcher interval**: 60s (EventBridge `rate(1 minute)`)

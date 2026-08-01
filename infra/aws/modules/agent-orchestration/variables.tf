@@ -74,6 +74,12 @@ variable "worker_timeout_seconds" {
   default     = 60
 }
 
+variable "terminalizer_timeout_seconds" {
+  type        = number
+  description = "Terminalizer Lambda execution timeout"
+  default     = 60
+}
+
 variable "worker_lease_seconds" {
   type        = number
   description = "Job processing lease duration (must be < visibility_timeout)"
@@ -106,4 +112,15 @@ variable "dlq_retention_seconds" {
   type        = number
   description = "Message retention in the DLQ"
   default     = 1209600 # 14 days
+}
+
+variable "dlq_visibility_timeout_seconds" {
+  type        = number
+  description = "DLQ visibility timeout; must be at least the terminalizer timeout"
+  default     = 90
+
+  validation {
+    condition     = var.dlq_visibility_timeout_seconds >= var.terminalizer_timeout_seconds
+    error_message = "dlq_visibility_timeout_seconds must be at least terminalizer_timeout_seconds."
+  }
 }
