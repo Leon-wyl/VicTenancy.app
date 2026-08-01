@@ -163,7 +163,8 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "lambda:GetFunction", "lambda:GetFunctionConfiguration",
           "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
           "lambda:ListAliases", "lambda:GetFunctionCodeSigningConfig",
-          "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
+          "lambda:GetFunctionConcurrency", "lambda:PutFunctionConcurrency",
+          "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
         ]
@@ -205,7 +206,8 @@ resource "aws_iam_role_policy" "deploy_staging" {
         Effect = "Allow"
         Action = [
           "lambda:UpdateEventSourceMapping", "lambda:DeleteEventSourceMapping",
-          "lambda:GetEventSourceMapping",
+          "lambda:GetEventSourceMapping", "lambda:ListTags", "lambda:TagResource",
+          "lambda:UntagResource",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:event-source-mapping:*",
@@ -390,7 +392,8 @@ resource "aws_iam_role_policy" "deploy_production" {
           "lambda:GetFunction", "lambda:GetFunctionConfiguration",
           "lambda:GetAlias", "lambda:ListVersionsByFunction", "lambda:PublishVersion",
           "lambda:ListAliases", "lambda:GetFunctionCodeSigningConfig",
-          "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
+          "lambda:GetFunctionConcurrency", "lambda:PutFunctionConcurrency",
+          "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
         ]
@@ -432,7 +435,8 @@ resource "aws_iam_role_policy" "deploy_production" {
         Effect = "Allow"
         Action = [
           "lambda:UpdateEventSourceMapping", "lambda:DeleteEventSourceMapping",
-          "lambda:GetEventSourceMapping",
+          "lambda:GetEventSourceMapping", "lambda:ListTags", "lambda:TagResource",
+          "lambda:UntagResource",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:event-source-mapping:*",
