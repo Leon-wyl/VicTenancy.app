@@ -153,6 +153,12 @@ jobs:
           terraform init -backend=false
           terraform validate
 
+      - name: Terraform validate — agent-orchestration module
+        working-directory: infra/aws/modules/agent-orchestration
+        run: |
+          terraform init -backend=false
+          terraform validate
+
       - name: Terraform validate — staging root
         working-directory: infra/aws/environments/staging
         env:
@@ -163,6 +169,9 @@ jobs:
           TF_VAR_state_bucket_name: "dummy"
           TF_VAR_github_org: "dummy"
           TF_VAR_github_repo: "dummy"
+          TF_VAR_agent_runtime_mode: "aws_iam"
+          TF_VAR_agent_runtime_invoke_url: "https://dummy.execute-api.ap-southeast-2.amazonaws.com"
+          TF_VAR_agent_runtime_execute_api_arn: "arn:aws:execute-api:ap-southeast-2:000000000000:0000000000/*/POST/api/agent/invoke"
         run: |
           terraform init -backend=false
           terraform validate
@@ -177,6 +186,9 @@ jobs:
           TF_VAR_state_bucket_name: "dummy"
           TF_VAR_github_org: "dummy"
           TF_VAR_github_repo: "dummy"
+          TF_VAR_agent_runtime_mode: "aws_iam"
+          TF_VAR_agent_runtime_invoke_url: "https://dummy.execute-api.ap-southeast-2.amazonaws.com"
+          TF_VAR_agent_runtime_execute_api_arn: "arn:aws:execute-api:ap-southeast-2:000000000000:0000000000/*/POST/api/agent/invoke"
         run: |
           terraform init -backend=false
           terraform validate

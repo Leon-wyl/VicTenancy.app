@@ -38,6 +38,16 @@ output "lambda_execution_role_arn_production" {
   value       = aws_iam_role.lambda_execution_production.arn
 }
 
+output "lambda_execution_role_name_staging" {
+  description = "Lambda execution role name for staging"
+  value       = aws_iam_role.lambda_execution_staging.name
+}
+
+output "lambda_execution_role_name_production" {
+  description = "Lambda execution role name for production"
+  value       = aws_iam_role.lambda_execution_production.name
+}
+
 output "runtime_secret_arn_staging" {
   description = "Secrets Manager secret ARN for staging"
   value       = aws_secretsmanager_secret.runtime_staging.arn

@@ -73,6 +73,9 @@ jobs:
       TF_VAR_supabase_publishable_key: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
       TF_VAR_github_org: ${{ github.repository_owner }}
       TF_VAR_github_repo: ${{ github.event.repository.name }}
+      TF_VAR_agent_runtime_mode: ${{ vars.AGENT_RUNTIME_MODE }}
+      TF_VAR_agent_runtime_invoke_url: ${{ vars.AGENT_RUNTIME_INVOKE_URL }}
+      TF_VAR_agent_runtime_execute_api_arn: ${{ vars.AGENT_RUNTIME_EXECUTE_API_ARN }}
 
     steps:
       - name: Checkout

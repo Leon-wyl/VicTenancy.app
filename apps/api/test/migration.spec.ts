@@ -233,3 +233,122 @@ describe('updated_at trigger', () => {
     expect(rows[0].exists).toBe(true);
   });
 });
+
+describe('agent_jobs Step 16 orchestration columns', () => {
+  it('has attempt default 0 (executions claimed, not creation count)', async () => {
+    const { rows } = await client.query(`
+      SELECT column_default
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'agent_jobs'
+        AND column_name = 'attempt';
+    `);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].column_default).toBe('0');
+  });
+
+  it('has lease_token, delivery_id, and next_attempt_at UUID columns', async () => {
+    const { rows } = await client.query(`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'agent_jobs'
+        AND column_name IN ('lease_token', 'delivery_id', 'next_attempt_at');
+    `);
+    const names = rows.map((r: { column_name: string }) => r.column_name).sort();
+    expect(names).toEqual(['delivery_id', 'lease_token', 'next_attempt_at']);
+  });
+
+  it('has UNIQUE constraint on assistant_message_id', async () => {
+    const { rows } = await client.query(`
+      SELECT conname
+      FROM pg_constraint
+      WHERE conname = 'agent_jobs_assistant_message_id_key'
+        AND contype = 'u';
+    `);
+    expect(rows).toHaveLength(1);
+  });
+
+  it('has FK assistant_message_id → messages(id) ON DELETE SET NULL', async () => {
+    const { rows } = await client.query(`
+      SELECT confdeltype::text
+      FROM pg_constraint
+      WHERE conname = 'fk_agent_jobs_assistant_message';
+    `);
+    expect(rows).toHaveLength(1);
+    expect(rows[0].confdeltype).toBe('n');
+  });
+
+  it('has partial index for expired processing-lease recovery', async () => {
+    const { rows } = await client.query(`
+      SELECT indexname
+      FROM pg_indexes
+      WHERE tablename = 'agent_jobs'
+        AND indexname = 'idx_agent_jobs_processing_lease';
+    `);
+    expect(rows).toHaveLength(1);
+  });
+});
+
+describe('agent_job_outbox table', () => {
+  it('exists with expected columns', async () => {
+    const { rows } = await client.query(`
+      SELECT column_name, data_type
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'agent_job_outbox'
+      ORDER BY ordinal_position;
+    `);
+    const cols = rows.map((r: { column_name: string }) => r.column_name);
+    expect(cols).toContain('id');
+    expect(cols).toContain('agent_job_id');
+    expect(cols).toContain('available_at');
+    expect(cols).toContain('published_at');
+    expect(cols).toContain('dispatch_lease_token');
+    expect(cols).toContain('dispatch_lease_until');
+    expect(cols).toContain('delivery_id');
+    expect(cols).toContain('dispatch_count');
+    expect(cols).toContain('last_error');
+  });
+
+  it('has UNIQUE agent_job_id FK to agent_jobs', async () => {
+    const { rows } = await client.query(`
+      SELECT conname, contype
+      FROM pg_constraint
+      WHERE conname = 'agent_job_outbox_agent_job_id_key'
+        OR conname = 'agent_job_outbox_agent_job_id_fkey';
+    `);
+    const types = rows.map((r: { contype: string }) => r.contype);
+    expect(types).toContain('u');
+    expect(types).toContain('f');
+  });
+
+  it('has RLS enabled and no grants to anon or authenticated', async () => {
+    const { rows: rlsRows } = await client.query(`
+      SELECT rowsecurity
+      FROM pg_tables
+      WHERE schemaname = 'public'
+        AND tablename = 'agent_job_outbox';
+    `);
+    expect(rlsRows[0]?.rowsecurity).toBe(true);
+
+    const { rows: privRows } = await client.query(`
+      SELECT grantee, privilege_type
+      FROM information_schema.table_privileges
+      WHERE table_schema = 'public'
+        AND table_name = 'agent_job_outbox'
+        AND grantee IN ('anon', 'authenticated');
+    `);
+    expect(privRows).toHaveLength(0);
+  });
+
+  it('has partial index for due outbox scan', async () => {
+    const { rows } = await client.query(`
+      SELECT indexname
+      FROM pg_indexes
+      WHERE tablename = 'agent_job_outbox'
+        AND indexname = 'idx_outbox_due';
+    `);
+    expect(rows).toHaveLength(1);
+  });
+});

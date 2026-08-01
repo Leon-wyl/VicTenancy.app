@@ -164,10 +164,19 @@ resource "aws_iam_role_policy" "deploy_staging" {
           "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
+          "lambda:CreateEventSourceMapping", "lambda:UpdateEventSourceMapping",
+          "lambda:DeleteEventSourceMapping", "lambda:GetEventSourceMapping",
+          "lambda:ListEventSourceMappings",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-api",
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-api:*",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-dispatcher",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-dispatcher:*",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-worker",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-worker:*",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-terminalizer",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-terminalizer:*",
         ]
       },
       {
@@ -216,6 +225,47 @@ resource "aws_iam_role_policy" "deploy_staging" {
         ]
         Resource = [
           "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:victenancy-staging*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:CreateQueue", "sqs:DeleteQueue", "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl", "sqs:ListQueues", "sqs:SetQueueAttributes",
+          "sqs:TagQueue", "sqs:UntagQueue",
+        ]
+        Resource = [
+          "arn:aws:sqs:${var.region}:${data.aws_caller_identity.current.account_id}:victenancy-staging-*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "events:PutRule", "events:PutTargets", "events:DeleteRule",
+          "events:RemoveTargets", "events:DescribeRule",
+          "events:TagResource", "events:UntagResource",
+        ]
+        Resource = [
+          "arn:aws:events:${var.region}:${data.aws_caller_identity.current.account_id}:rule/victenancy-staging-*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["events:PutTargets", "events:RemoveTargets"]
+        Resource = [
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-staging-dispatcher",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy", "iam:GetRole", "iam:PassRole",
+        ]
+        Resource = [
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-staging-dispatcher-exec",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-staging-worker-exec",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-staging-terminalizer-exec",
         ]
       },
       {
@@ -304,10 +354,19 @@ resource "aws_iam_role_policy" "deploy_production" {
           "lambda:PutFunctionConcurrency", "lambda:DeleteFunctionConcurrency",
           "lambda:AddPermission", "lambda:RemovePermission", "lambda:GetPolicy",
           "lambda:TagResource", "lambda:UntagResource", "lambda:ListTags",
+          "lambda:CreateEventSourceMapping", "lambda:UpdateEventSourceMapping",
+          "lambda:DeleteEventSourceMapping", "lambda:GetEventSourceMapping",
+          "lambda:ListEventSourceMappings",
         ]
         Resource = [
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-api",
           "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-api:*",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-dispatcher",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-dispatcher:*",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-worker",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-worker:*",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-terminalizer",
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-terminalizer:*",
         ]
       },
       {
@@ -356,6 +415,47 @@ resource "aws_iam_role_policy" "deploy_production" {
         ]
         Resource = [
           "arn:aws:cloudwatch:${var.region}:${data.aws_caller_identity.current.account_id}:alarm:victenancy-production*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:CreateQueue", "sqs:DeleteQueue", "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl", "sqs:ListQueues", "sqs:SetQueueAttributes",
+          "sqs:TagQueue", "sqs:UntagQueue",
+        ]
+        Resource = [
+          "arn:aws:sqs:${var.region}:${data.aws_caller_identity.current.account_id}:victenancy-production-*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "events:PutRule", "events:PutTargets", "events:DeleteRule",
+          "events:RemoveTargets", "events:DescribeRule",
+          "events:TagResource", "events:UntagResource",
+        ]
+        Resource = [
+          "arn:aws:events:${var.region}:${data.aws_caller_identity.current.account_id}:rule/victenancy-production-*",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["events:PutTargets", "events:RemoveTargets"]
+        Resource = [
+          "arn:aws:lambda:${var.region}:${data.aws_caller_identity.current.account_id}:function:victenancy-production-dispatcher",
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:CreateRole", "iam:DeleteRole", "iam:PutRolePolicy",
+          "iam:DeleteRolePolicy", "iam:GetRole", "iam:PassRole",
+        ]
+        Resource = [
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-production-dispatcher-exec",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-production-worker-exec",
+          "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/victenancy-production-terminalizer-exec",
         ]
       },
       {

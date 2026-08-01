@@ -39,3 +39,18 @@ variable "github_repo" {
   description = "GitHub repository name"
   type        = string
 }
+
+variable "agent_runtime_mode" {
+  description = "AGENT_RUNTIME_MODE: local or aws_iam"
+  type        = string
+}
+
+variable "agent_runtime_invoke_url" {
+  description = "Agent Runtime invoke URL (shared endpoint)"
+  type        = string
+}
+
+variable "agent_runtime_execute_api_arn" {
+  description = "Exact execute-api ARN for POST /api/agent/invoke"
+  type        = string
+}

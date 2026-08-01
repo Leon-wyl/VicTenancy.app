@@ -15,7 +15,7 @@ Do not place Agent code (LangGraph, FastAPI, RAG, Bedrock, Qdrant seed data,
 Terraform) in this repository. The Agent Runtime API contract is documented at
 [`docs/integrations/agent-runtime.md`](../integrations/agent-runtime.md).
 
-## Lambda Deploy Boundary (Step 15a — In Progress)
+## Lambda Deploy Boundary (Step 15a — Done)
 
 `apps/api/src/bootstrap/` creates the Nest HTTP application and is shared
 between the local `main.ts` listener and the Lambda handler in `lambda.ts`.
@@ -37,7 +37,7 @@ Runtime infrastructure is managed by Terraform in `infra/aws/`:
 - **Deploy roles**: least-privilege OIDC roles per environment
 - **Execution roles**: Lambda access to CloudWatch logs + Secrets Manager secret only
 - **Module**: reusable Lambda + API Gateway HTTP API v2 (28s timeout, 512 MB, x86_64)
-- **Environments**: staging (reserved concurrency 5) and production (reserved concurrency 10)
+- **Environments**: staging and production (both `reserved_concurrency = -1`; share the account concurrency pool with unreserved capacity)
 
 API Gateway applies no authorization — all JWT enforcement is performed by the
 application's `JwtAuthGuard`, just as in local development.
@@ -162,6 +162,28 @@ runtime connectivity.
 
 Future cloud IaC belongs in `infra/aws/`. This repository does not contain
 Terraform, CDK, SAM, or Serverless Framework configurations.
+
+## Agent Orchestration Boundary (Step 16)
+
+CRUD endpoints create `agent_jobs` records in a `Serializable` transaction that
+also inserts a `agent_job_outbox` row (transactional outbox). A best-effort SQS
+FIFO send fires after commit with low latency; failures are repaired by the
+scheduled dispatcher.
+
+The dispatcher (EventBridge `rate(1 min)`) recovers expired processing leases
+and publishes due/unpublished outbox records to the SQS FIFO queue (grouped by
+`conversation_id`, deduplicated by `delivery_id`).
+
+The worker (SQS FIFO event-source mapping, batch size 1) atomically claims a
+job via a DB lease + `delivery_id` fence, invokes the Agent Runtime server-to-server
+through a `SigV4`-signed adapter (`aws_iam`) or an unsigned local URL (`local`),
+and persists the assistant message + citations + `succeeded` job state in one
+fenced transaction.
+
+A DLQ terminalizer marks jobs `failed` only when the payload's `deliveryId`
+still matches the job's current processing generation.
+
+See [`docs/operations/agent-orchestration.md`](../operations/agent-orchestration.md).
 
 ## Cross-Repository Contract
 
