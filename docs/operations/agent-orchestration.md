@@ -97,7 +97,7 @@ dedup window never strands a retry because every DB-authoritative retry gets a
 
 - **Visibility timeout**: 150s (≥ 120s job lease + buffer)
 - **Redrive maxReceiveCount**: 3 → DLQ after 3rd failed receive
-- **Worker max concurrency**: 1 (event-source `scaling_config.maximum_concurrency`)
+- **Worker max concurrency**: 2 (event-source `scaling_config.maximum_concurrency`; AWS requires a minimum of 2)
 - **Dispatcher interval**: 60s (EventBridge `rate(1 minute)`)
 
 ### Safe Replay Behaviour
