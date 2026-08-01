@@ -54,10 +54,15 @@ resource "aws_iam_role_policy" "lambda_execution_staging" {
         Resource = [aws_secretsmanager_secret.runtime_staging.arn]
       },
       {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup"]
+        Resource = ["*"]
+      },
+      {
         Effect = "Allow"
         Action = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = [
-          "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/victenancy-staging-api:log-stream:*",
+          "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/victenancy-staging-api:*",
         ]
       },
     ]
@@ -76,10 +81,15 @@ resource "aws_iam_role_policy" "lambda_execution_production" {
         Resource = [aws_secretsmanager_secret.runtime_production.arn]
       },
       {
+        Effect   = "Allow"
+        Action   = ["logs:CreateLogGroup"]
+        Resource = ["*"]
+      },
+      {
         Effect = "Allow"
         Action = ["logs:CreateLogStream", "logs:PutLogEvents"]
         Resource = [
-          "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/victenancy-production-api:log-stream:*",
+          "arn:aws:logs:${var.region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/victenancy-production-api:*",
         ]
       },
     ]
