@@ -1,28 +1,43 @@
-name: Validate Schema and API
+name: Validate API, Web, and Infrastructure
 
 on:
   pull_request:
     branches:
       - main
-    paths:
-      - supabase/migrations/**
-      - apps/api/src/**
-      - apps/api/test/**
-      - apps/api/prisma/**
-      - apps/api/Dockerfile.lambda
-      - apps/api/Dockerfile.lambda.dockerignore
-      - apps/api/package.json
-      - package.json
-      - package-lock.json
-      - infra/aws/**
-      - .github/workflows/validate.yml
-      - .github/workflows/deploy-api-staging.yml
-      - .github/workflows/deploy-api-production.yml
 
 permissions:
   contents: read
 
 jobs:
+  web:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+      NEXT_PUBLIC_API_BASE_URL: https://api.example.test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint -w @victenancy/web
+
+      - name: Unit tests
+        run: npm run test -w @victenancy/web
+
+      - name: Build
+        run: npm run build -w @victenancy/web
+
   validate:
     runs-on: ubuntu-latest
     strategy:
