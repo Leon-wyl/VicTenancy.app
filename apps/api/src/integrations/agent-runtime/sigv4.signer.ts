@@ -28,7 +28,9 @@ export async function signRequest(
     credentials: defaultProvider(),
     region,
     service: 'execute-api',
-    sha256: Hash,
+    // SignatureV4 constructs the hash implementation without arguments;
+    // bind the algorithm required by @smithy/hash-node up front.
+    sha256: Hash.bind(null, 'sha256'),
   });
 
   const request = new HttpRequest({
