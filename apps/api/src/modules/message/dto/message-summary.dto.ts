@@ -1,3 +1,5 @@
+import type { CitationSummaryDto } from '../../citation/dto/citation-summary.dto';
+
 export class MessageSummaryDto {
   id!: string;
   conversationId!: string;
@@ -5,6 +7,7 @@ export class MessageSummaryDto {
   content!: string;
   metadata!: unknown | null;
   createdAt!: string;
+  citations?: CitationSummaryDto[];
 
   static fromEntity(entity: {
     id: string;

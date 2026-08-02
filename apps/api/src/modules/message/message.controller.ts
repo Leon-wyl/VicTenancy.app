@@ -16,11 +16,11 @@ import type { Response } from 'express';
 import { MessageService } from './message.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { CreateMessageResponseDto } from './dto/create-message-response.dto';
+import { ListMessagesDto } from './dto/list-messages.dto';
 import { MessageSummaryDto } from './dto/message-summary.dto';
 import { PageResponse } from '../../common/pagination/page-response.dto';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { Principal } from '../../common/auth/principal';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 import { getRequestContext } from '../../common/correlation/correlation.context';
 
 const UUID_RE =
@@ -34,13 +34,14 @@ export class MessageController {
   async findAll(
     @CurrentUser() user: Principal,
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
-    @Query() query: PaginationDto,
+    @Query() query: ListMessagesDto,
   ): Promise<PageResponse<MessageSummaryDto>> {
     return this.messageService.findAllByConversation(
       user.sub,
       conversationId,
       query.limit ?? 20,
       query.cursor,
+      query.order ?? 'asc',
     );
   }
 

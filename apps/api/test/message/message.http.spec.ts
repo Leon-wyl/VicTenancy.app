@@ -66,6 +66,7 @@ describe('Message HTTP (e2e)', () => {
   let prismaMock: {
     conversation: { findFirst: jest.Mock; updateMany: jest.Mock };
     message: { findMany: jest.Mock; create: jest.Mock };
+    citation: { findMany: jest.Mock };
     agentJob: { findUnique: jest.Mock; create: jest.Mock };
     agentJobOutbox: { create: jest.Mock };
     $transaction: jest.Mock;
@@ -75,6 +76,7 @@ describe('Message HTTP (e2e)', () => {
     prismaMock = {
       conversation: { findFirst: jest.fn(), updateMany: jest.fn() },
       message: { findMany: jest.fn(), create: jest.fn() },
+      citation: { findMany: jest.fn().mockResolvedValue([]) },
       agentJob: { findUnique: jest.fn(), create: jest.fn() },
       agentJobOutbox: { create: jest.fn() },
       $transaction: jest.fn(),
@@ -234,6 +236,49 @@ describe('Message HTTP (e2e)', () => {
 
       expect(res.body.data).toHaveLength(1);
       expect(res.body.data[0].authorRole).toBe('user');
+    });
+
+    it('accepts order=desc and passes it to the service query', async () => {
+      prismaMock.conversation.findFirst.mockResolvedValue(mockConversationEntity);
+      prismaMock.message.findMany.mockResolvedValue([mockMessageEntity]);
+
+      await request(app.getHttpServer())
+        .get(`/v1/conversations/${convId}/messages?order=desc`)
+        .set('Authorization', 'Bearer test-token')
+        .expect(200);
+
+      expect(prismaMock.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+    });
+
+    it('defaults to order=asc when order is omitted', async () => {
+      prismaMock.conversation.findFirst.mockResolvedValue(mockConversationEntity);
+      prismaMock.message.findMany.mockResolvedValue([mockMessageEntity]);
+
+      await request(app.getHttpServer())
+        .get(`/v1/conversations/${convId}/messages`)
+        .set('Authorization', 'Bearer test-token')
+        .expect(200);
+
+      expect(prismaMock.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        }),
+      );
+    });
+
+    it('returns 400 for an invalid order value', async () => {
+      prismaMock.conversation.findFirst.mockResolvedValue(mockConversationEntity);
+
+      await request(app.getHttpServer())
+        .get(`/v1/conversations/${convId}/messages?order=newest`)
+        .set('Authorization', 'Bearer test-token')
+        .expect(400);
+
+      expect(prismaMock.message.findMany).not.toHaveBeenCalled();
     });
 
     it('returns 404 for non-owned conversation', async () => {
