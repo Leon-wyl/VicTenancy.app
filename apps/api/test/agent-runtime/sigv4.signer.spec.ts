@@ -18,6 +18,7 @@ describe('signRequest', () => {
 
     expect(signed.Authorization).toMatch(/^AWS4-HMAC-SHA256 /);
     expect(signed['X-Amz-Date']).toMatch(/^\d{8}T\d{6}Z$/);
+    expect(signed['X-Amz-Content-Sha256']).toMatch(/^[0-9a-f]{64}$/);
     expect(signed['X-Amz-Security-Token']).toBe('session-token');
     expect(signed.Host).toBe('example.execute-api.ap-southeast-2.amazonaws.com');
   });

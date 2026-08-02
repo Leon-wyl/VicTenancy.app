@@ -6,6 +6,7 @@ import { defaultProvider } from '@aws-sdk/credential-provider-node';
 export interface SignedHeaders {
   Authorization: string;
   'X-Amz-Date': string;
+  'X-Amz-Content-Sha256': string;
   'X-Amz-Security-Token'?: string;
   'Content-Type': string;
   Host: string;
@@ -50,6 +51,7 @@ export async function signRequest(
   const headers: SignedHeaders = {
     Authorization: signed.headers.authorization ?? '',
     'X-Amz-Date': signed.headers['x-amz-date'] ?? '',
+    'X-Amz-Content-Sha256': signed.headers['x-amz-content-sha256'] ?? '',
     'Content-Type': 'application/json',
     Host: hostname,
   };
