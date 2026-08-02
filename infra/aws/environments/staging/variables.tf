@@ -54,3 +54,8 @@ variable "agent_runtime_execute_api_arn" {
   description = "Exact execute-api ARN for POST /api/agent/invoke"
   type        = string
 }
+
+variable "cors_origins" {
+  description = "Comma-separated browser origins allowed by the API CORS allow-list"
+  type        = string
+}

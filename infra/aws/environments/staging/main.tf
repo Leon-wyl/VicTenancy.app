@@ -27,6 +27,7 @@ module "api" {
   tags                 = local.tags
 
   additional_env_vars = {
+    CORS_ORIGINS                  = var.cors_origins
     AGENT_RUNTIME_MODE            = var.agent_runtime_mode
     SQS_MAIN_QUEUE_URL            = module.agent_orchestration.main_queue_url
     AGENT_RUNTIME_INVOKE_URL      = var.agent_runtime_invoke_url
