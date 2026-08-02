@@ -1,7 +1,9 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
+  Headers,
   Get,
   HttpCode,
   HttpStatus,
@@ -19,6 +21,9 @@ import { PageResponse } from '../../common/pagination/page-response.dto';
 import { CurrentUser } from '../../common/auth/current-user.decorator';
 import { Principal } from '../../common/auth/principal';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 @Controller('/v1/conversations')
 export class ConversationController {
@@ -40,8 +45,14 @@ export class ConversationController {
   async create(
     @CurrentUser() user: Principal,
     @Body() dto: CreateConversationDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<ConversationSummaryDto> {
-    return this.conversationService.create(user.sub, dto);
+    if (idempotencyKey && !UUID_RE.test(idempotencyKey)) {
+      throw new BadRequestException(
+        'Invalid Idempotency-Key header (must be a UUID)',
+      );
+    }
+    return this.conversationService.create(user.sub, dto, idempotencyKey);
   }
 
   @Get(':conversationId')
