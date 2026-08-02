@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Plus, MessageSquare } from "lucide-react";
+import { Plus } from "lucide-react";
 import { LandingMark } from "@/components/landing/landing-mark";
+import { ConversationList } from "@/features/chat/components/conversation-list";
 import { UserMenu } from "./user-menu";
 
 export function SidebarContent({
@@ -21,33 +22,21 @@ export function SidebarContent({
       </div>
 
       <div className="px-3">
-        <div className="flex items-center gap-2.5 rounded-lg border border-ink/10 px-3 py-2.5">
-          <Plus className="h-4 w-4 shrink-0 text-ink/40" aria-hidden="true" />
-          <span className="text-sm font-medium text-ink/50">
-            New conversation
-          </span>
-          <span className="ml-auto rounded bg-ink/5 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink/40">
-            Step 18
-          </span>
-        </div>
+        <Link
+          href="/app"
+          className="flex items-center gap-2.5 rounded-lg border border-ink/15 bg-white px-3 py-2.5 text-sm font-medium text-ink transition-colors hover:border-mint/60 hover:bg-mint/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-mint/40"
+        >
+          <Plus className="h-4 w-4 shrink-0 text-ink/50" aria-hidden="true" />
+          New conversation
+        </Link>
       </div>
 
-      <nav
-        aria-label="Recent conversations"
-        className="mt-6 flex-1 overflow-y-auto px-3"
-        style={{ overscrollBehavior: "contain" }}
-      >
-        <p className="px-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/40">
+      <div className="mt-4 flex min-h-0 flex-1 flex-col px-3 pb-2">
+        <p className="px-2 pb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-ink/40">
           Recent conversations
         </p>
-        <div className="mt-3 flex items-center gap-2.5 rounded-lg px-2 py-2 text-sm text-ink/35">
-          <MessageSquare
-            className="h-4 w-4 shrink-0"
-            aria-hidden="true"
-          />
-          <span>No conversations yet</span>
-        </div>
-      </nav>
+        <ConversationList />
+      </div>
 
       <div
         className="border-t border-ink/10 p-3"
