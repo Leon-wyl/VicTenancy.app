@@ -1,20 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-
-function validateSafePath(input: string): string {
-  if (!input || !input.startsWith('/')) return '/';
-  if (input.includes('//') || input.includes('\\')) return '/';
-  if (input.includes('@') || input.includes('://')) return '/';
-  const decoded = decodeURIComponent(input);
-  if (decoded.includes('//') || decoded.includes('\\')) return '/';
-  return input;
-}
+import { safeRedirectPath } from '@/lib/auth/redirect';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  const next = searchParams.get('next') ?? '/';
-  const safePath = validateSafePath(next);
+  const next = searchParams.get('next');
+  const safePath = safeRedirectPath(next, '/app');
 
   if (code) {
     const response = NextResponse.redirect(`${origin}${safePath}`);
@@ -47,5 +39,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/?auth_error=callback_failed`);
+  const loginUrl = new URL('/login', request.url);
+  loginUrl.searchParams.set('auth_error', 'callback_failed');
+  return NextResponse.redirect(loginUrl);
 }

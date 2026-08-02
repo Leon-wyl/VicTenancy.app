@@ -78,8 +78,82 @@ body {
   pointer-events: none;
 }
 
+/* Skip link — only revealed for genuine keyboard users */
+.skip-link {
+  position: fixed;
+  left: 1rem;
+  top: 1rem;
+  z-index: 100;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  border-radius: 9999px;
+  background: var(--mint);
+  color: var(--ink);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.skip-link:focus-visible {
+  height: auto;
+  width: auto;
+  overflow: visible;
+  clip: auto;
+  clip-path: none;
+}
+
+/* Sheet (mobile drawer) — CSS transitions on Radix data-state */
+@keyframes sheet-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-overlay-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes sheet-content-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes sheet-content-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.sheet-overlay[data-state="open"] {
+  animation: sheet-overlay-in 150ms ease-out;
+}
+.sheet-overlay[data-state="closed"] {
+  animation: sheet-overlay-out 150ms ease-out;
+}
+.sheet-content[data-side="right"][data-state="open"] {
+  animation: sheet-content-in-right 150ms ease-out;
+}
+.sheet-content[data-side="right"][data-state="closed"] {
+  animation: sheet-content-out-right 150ms ease-out;
+}
+
+/* Dropdown menu enter animation */
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.dropdown-content[data-state="open"] {
+  animation: dropdown-in 120ms ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  .sheet-overlay,
+  .sheet-content,
+  .dropdown-content,
+  .skip-link {
+    animation: none !important;
+    transition: none !important;
   }
 }
