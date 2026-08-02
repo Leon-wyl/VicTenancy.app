@@ -48,6 +48,12 @@ variable "reserved_concurrency" {
   }
 }
 
+variable "enable_kms_encryption" {
+  type        = bool
+  description = "Whether to explicitly configure the Lambda KMS key. When false, Lambda uses its default encryption key."
+  default     = true
+}
+
 variable "memory_mb" {
   type        = number
   description = "Lambda memory allocation in MB"
