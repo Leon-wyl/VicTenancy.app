@@ -1,3 +1,7 @@
+data "aws_kms_key" "lambda" {
+  key_id = "alias/aws/lambda"
+}
+
 locals {
   name_prefix    = "victenancy-${var.environment}"
   api_stage_name = "$default"
@@ -37,6 +41,7 @@ resource "aws_lambda_function" "api" {
   memory_size                    = var.memory_mb
   timeout                        = 28
   reserved_concurrent_executions = var.reserved_concurrency
+  kms_key_arn                    = data.aws_kms_key.lambda.arn
   publish                        = true
   environment { variables = local.lambda_env }
   tags       = var.tags
