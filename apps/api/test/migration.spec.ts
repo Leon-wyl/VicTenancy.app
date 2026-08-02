@@ -100,6 +100,27 @@ describe('conversations table', () => {
     `);
     expect(rows).toHaveLength(1);
   });
+
+  it('has nullable conversation creation idempotency key and unique index', async () => {
+    const { rows: columns } = await client.query(`
+      SELECT column_name, is_nullable
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'conversations'
+        AND column_name = 'creation_idempotency_key';
+    `);
+    expect(columns).toHaveLength(1);
+    expect(columns[0].is_nullable).toBe('YES');
+
+    const { rows: indexes } = await client.query(`
+      SELECT indexname
+      FROM pg_indexes
+      WHERE schemaname = 'public'
+        AND tablename = 'conversations'
+        AND indexname = 'uq_conversations_creation_idempotency';
+    `);
+    expect(indexes).toHaveLength(1);
+  });
 });
 
 describe('messages table', () => {
@@ -231,6 +252,35 @@ describe('updated_at trigger', () => {
       ) AS exists;
     `);
     expect(rows[0].exists).toBe(true);
+  });
+});
+
+describe('supabase_realtime publication (Step 18)', () => {
+  it('includes conversations, messages, and agent_jobs', async () => {
+    const { rows } = await client.query(`
+      SELECT tablename
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public';
+    `);
+    const tables = rows.map((r: { tablename: string }) => r.tablename);
+    expect(tables).toContain('conversations');
+    expect(tables).toContain('messages');
+    expect(tables).toContain('agent_jobs');
+  });
+
+  it('does NOT use REPLICA IDENTITY FULL on chat tables', async () => {
+    const { rows } = await client.query(`
+      SELECT relname, relreplident
+      FROM pg_class
+      WHERE relname IN ('conversations', 'messages', 'agent_jobs')
+        AND relnamespace = 'public'::regnamespace;
+    `);
+    expect(rows).toHaveLength(3);
+    rows.forEach((row: { relreplident: string }) => {
+      // 'f' = REPLICA IDENTITY FULL; default ('d') keeps payloads minimal.
+      expect(row.relreplident).not.toBe('f');
+    });
   });
 });
 

@@ -17,6 +17,7 @@ import {
   encodeCursor,
 } from '../../common/pagination/cursor-codec';
 import { SqsOutboxPublisher } from '../agent-orchestration/sqs-outbox-publisher';
+import { CitationSummaryDto } from '../citation/dto/citation-summary.dto';
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY_MS = 50;
@@ -66,6 +67,7 @@ export class MessageService {
     conversationId: string,
     limit: number,
     cursor?: string,
+    order: 'asc' | 'desc' = 'asc',
   ): Promise<PageResponse<MessageSummaryDto>> {
     const conversation = await this.prisma.conversation.findFirst({
       where: { id: conversationId, ownerUserId: userId },
@@ -77,27 +79,58 @@ export class MessageService {
     const where: Record<string, unknown> = { conversationId };
     if (cursor) {
       const { createdAt, id } = decodeMessageCursor(cursor);
-      where.OR = [
-        { createdAt: { gt: new Date(createdAt) } },
-        {
-          AND: [
-            { createdAt: { equals: new Date(createdAt) } },
-            { id: { gt: id } },
-          ],
-        },
-      ];
+      where.OR =
+        order === 'desc'
+          ? [
+              { createdAt: { lt: new Date(createdAt) } },
+              {
+                AND: [
+                  { createdAt: { equals: new Date(createdAt) } },
+                  { id: { lt: id } },
+                ],
+              },
+            ]
+          : [
+              { createdAt: { gt: new Date(createdAt) } },
+              {
+                AND: [
+                  { createdAt: { equals: new Date(createdAt) } },
+                  { id: { gt: id } },
+                ],
+              },
+            ];
     }
 
     const rows = await this.prisma.message.findMany({
       where,
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      orderBy:
+        order === 'desc'
+          ? [{ createdAt: 'desc' }, { id: 'desc' }]
+          : [{ createdAt: 'asc' }, { id: 'asc' }],
       take: limit + 1,
     });
 
     const hasMore = rows.length > limit;
-    const data = (hasMore ? rows.slice(0, limit) : rows).map(
-      MessageSummaryDto.fromEntity,
-    );
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const data = pageRows.map(MessageSummaryDto.fromEntity);
+
+    if (pageRows.length > 0) {
+      const citations = await this.prisma.citation.findMany({
+        where: { messageId: { in: pageRows.map((row) => row.id) } },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+      const citationsByMessage = new Map<string, typeof citations>();
+      for (const citation of citations) {
+        const existing = citationsByMessage.get(citation.messageId) ?? [];
+        existing.push(citation);
+        citationsByMessage.set(citation.messageId, existing);
+      }
+      for (const message of data) {
+        message.citations = (citationsByMessage.get(message.id) ?? []).map(
+          CitationSummaryDto.fromEntity,
+        );
+      }
+    }
 
     let nextCursor: string | null = null;
     if (hasMore) {

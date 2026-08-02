@@ -1,7 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationService } from '../../src/modules/conversation/conversation.service';
 import { PrismaService } from '../../src/database/prisma.service';
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { encodeCursor } from '../../src/common/pagination/cursor-codec';
 
 const VALID_UUID = '00000000-0000-0000-0000-000000000001';
@@ -100,6 +105,49 @@ describe('ConversationService', () => {
       expect(prisma.conversation.create).toHaveBeenCalledWith({
         data: { ownerUserId: 'user-1', title: 'Hello' },
       });
+    });
+
+    it('replays a conversation with the same creation idempotency key', async () => {
+      const key = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+      prisma.conversation.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: {
+            target: ['ownerUserId', 'creationIdempotencyKey'],
+          },
+        }),
+      );
+      prisma.conversation.findFirst.mockResolvedValue(
+        mockConversation({ title: 'My Chat' }),
+      );
+
+      const result = await service.create('user-1', { title: 'My Chat' }, key);
+
+      expect(result.id).toBe('conv-1');
+      expect(prisma.conversation.findFirst).toHaveBeenCalledWith({
+        where: { ownerUserId: 'user-1', creationIdempotencyKey: key },
+      });
+    });
+
+    it('rejects a creation key reused with a different title', async () => {
+      const key = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
+      prisma.conversation.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+          code: 'P2002',
+          clientVersion: 'test',
+          meta: {
+            target: ['ownerUserId', 'creationIdempotencyKey'],
+          },
+        }),
+      );
+      prisma.conversation.findFirst.mockResolvedValue(
+        mockConversation({ title: 'Original title' }),
+      );
+
+      await expect(
+        service.create('user-1', { title: 'Different title' }, key),
+      ).rejects.toThrow(ConflictException);
     });
   });
 

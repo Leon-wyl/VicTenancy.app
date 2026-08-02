@@ -44,12 +44,14 @@ model Conversation {
   lastActivityAt DateTime @default(now()) @map("last_activity_at") @db.Timestamptz()
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz()
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz()
+  creationIdempotencyKey String? @map("creation_idempotency_key")
 
   owner    User       @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   messages Message[]
   jobs     AgentJob[]
 
   @@index([ownerUserId, lastActivityAt(sort: Desc), id(sort: Desc)], map: "idx_conversations_owner_activity")
+  @@unique([ownerUserId, creationIdempotencyKey], map: "uq_conversations_creation_idempotency")
   @@map("conversations")
 }
 

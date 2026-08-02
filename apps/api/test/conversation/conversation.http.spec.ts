@@ -125,6 +125,15 @@ describe('Conversation HTTP (e2e)', () => {
       expect(res.body.title).toBe('My Chat');
     });
 
+    it('returns 400 for an invalid creation idempotency key', async () => {
+      await request(app.getHttpServer())
+        .post('/v1/conversations')
+        .set('Authorization', 'Bearer test-token')
+        .set('Idempotency-Key', 'not-a-uuid')
+        .send({ title: 'My Chat' })
+        .expect(400);
+    });
+
     it('defaults title when omitted', async () => {
       prismaMock.conversation.create.mockResolvedValue(
         conv({ title: 'New conversation' }),

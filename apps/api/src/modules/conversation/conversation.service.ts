@@ -1,8 +1,10 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { ConversationSummaryDto } from './dto/conversation-summary.dto';
 import { CreateConversationDto } from './dto/create-conversation.dto';
@@ -25,6 +27,17 @@ function validateTitle(value: unknown): string {
     throw new BadRequestException('Title must not exceed 200 characters');
   }
   return trimmed;
+}
+
+function isCreationIdempotencyConflict(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code !== 'P2002') return false;
+  const target = (error.meta?.target as string[] | undefined) ?? [];
+  return (
+    target.includes('ownerUserId') &&
+    (target.includes('creationIdempotencyKey') ||
+      target.includes('creation_idempotency_key'))
+  );
 }
 
 @Injectable()
@@ -76,16 +89,40 @@ export class ConversationService {
   async create(
     userId: string,
     dto: CreateConversationDto,
+    idempotencyKey?: string,
   ): Promise<ConversationSummaryDto> {
     const title =
       dto.title === undefined
         ? 'New conversation'
         : validateTitle(dto.title);
 
-    const entity = await this.prisma.conversation.create({
-      data: { ownerUserId: userId, title },
-    });
-    return ConversationSummaryDto.fromEntity(entity);
+    try {
+      const entity = await this.prisma.conversation.create({
+        data: {
+          ownerUserId: userId,
+          title,
+          ...(idempotencyKey
+            ? { creationIdempotencyKey: idempotencyKey }
+            : {}),
+        },
+      });
+      return ConversationSummaryDto.fromEntity(entity);
+    } catch (error) {
+      if (!idempotencyKey || !isCreationIdempotencyConflict(error)) {
+        throw error;
+      }
+
+      const existing = await this.prisma.conversation.findFirst({
+        where: { ownerUserId: userId, creationIdempotencyKey: idempotencyKey },
+      });
+      if (!existing) throw error;
+      if (existing.title !== title) {
+        throw new ConflictException(
+          'Idempotency key reused with different parameters',
+        );
+      }
+      return ConversationSummaryDto.fromEntity(existing);
+    }
   }
 
   async findOne(

@@ -7,12 +7,14 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { encodeCursor } from '../../src/common/pagination/cursor-codec';
 
 describe('MessageService', () => {
   let service: MessageService;
   let prisma: {
     conversation: { findFirst: jest.Mock; updateMany: jest.Mock };
     message: { findMany: jest.Mock; create: jest.Mock };
+    citation: { findMany: jest.Mock };
     agentJob: { findUnique: jest.Mock; create: jest.Mock };
     agentJobOutbox: { create: jest.Mock };
     $transaction: jest.Mock;
@@ -22,6 +24,7 @@ describe('MessageService', () => {
     prisma = {
       conversation: { findFirst: jest.fn(), updateMany: jest.fn() },
       message: { findMany: jest.fn(), create: jest.fn() },
+      citation: { findMany: jest.fn().mockResolvedValue([]) },
       agentJob: { findUnique: jest.fn(), create: jest.fn() },
       agentJobOutbox: { create: jest.fn() },
       $transaction: jest.fn(),
@@ -82,6 +85,127 @@ describe('MessageService', () => {
       await expect(
         service.findAllByConversation('user-2', 'conv-1', 20),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('defaults to ascending order (unchanged behaviour)', async () => {
+      prisma.conversation.findFirst.mockResolvedValue(mockConversation());
+      prisma.message.findMany.mockResolvedValue([mockMessage()]);
+
+      await service.findAllByConversation('user-1', 'conv-1', 20);
+
+      expect(prisma.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        }),
+      );
+    });
+
+    it('uses forward keyset (gt) conditions for asc cursors', async () => {
+      prisma.conversation.findFirst.mockResolvedValue(mockConversation());
+      prisma.message.findMany.mockResolvedValue([]);
+      const cursor = encodeCursor({
+        createdAt: '2026-07-30T00:00:00.000Z',
+        id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+      });
+
+      await service.findAllByConversation('user-1', 'conv-1', 20, cursor);
+
+      const where = prisma.message.findMany.mock.calls[0][0].where;
+      expect(where.OR).toEqual([
+        { createdAt: { gt: new Date('2026-07-30T00:00:00.000Z') } },
+        {
+          AND: [
+            { createdAt: { equals: new Date('2026-07-30T00:00:00.000Z') } },
+            { id: { gt: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' } },
+          ],
+        },
+      ]);
+    });
+
+    it('orders newest-first for desc', async () => {
+      prisma.conversation.findFirst.mockResolvedValue(mockConversation());
+      prisma.message.findMany.mockResolvedValue([mockMessage()]);
+
+      await service.findAllByConversation(
+        'user-1',
+        'conv-1',
+        20,
+        undefined,
+        'desc',
+      );
+
+      expect(prisma.message.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        }),
+      );
+    });
+
+    it('uses backward keyset (lt) conditions for desc cursors, tie-broken by id', async () => {
+      prisma.conversation.findFirst.mockResolvedValue(mockConversation());
+      prisma.message.findMany.mockResolvedValue([]);
+      const cursor = encodeCursor({
+        createdAt: '2026-07-30T00:00:00.000Z',
+        id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee',
+      });
+
+      await service.findAllByConversation(
+        'user-1',
+        'conv-1',
+        20,
+        cursor,
+        'desc',
+      );
+
+      const where = prisma.message.findMany.mock.calls[0][0].where;
+      expect(where.OR).toEqual([
+        { createdAt: { lt: new Date('2026-07-30T00:00:00.000Z') } },
+        {
+          AND: [
+            { createdAt: { equals: new Date('2026-07-30T00:00:00.000Z') } },
+            { id: { lt: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' } },
+          ],
+        },
+      ]);
+    });
+
+    it('emits a nextCursor from the last page row (works for both directions)', async () => {
+      prisma.conversation.findFirst.mockResolvedValue(mockConversation());
+      const rows = [
+        mockMessage({
+          id: 'msg-1',
+          createdAt: new Date('2026-07-30T00:00:00.000Z'),
+        }),
+        mockMessage({
+          id: 'msg-2',
+          createdAt: new Date('2026-07-30T00:00:00.000Z'),
+        }),
+        mockMessage({
+          id: 'msg-3',
+          createdAt: new Date('2026-07-30T00:00:01.000Z'),
+        }),
+      ];
+      prisma.message.findMany.mockResolvedValue(rows);
+
+      const result = await service.findAllByConversation(
+        'user-1',
+        'conv-1',
+        2,
+        undefined,
+        'desc',
+      );
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data.map((m) => m.id)).toEqual(['msg-1', 'msg-2']);
+      expect(result.page.nextCursor).not.toBeNull();
+      // Cursor points at the last returned row; the next page must not overlap.
+      const decoded = JSON.parse(
+        Buffer.from(result.page.nextCursor!, 'base64url').toString('utf-8'),
+      );
+      expect(decoded).toEqual({
+        createdAt: '2026-07-30T00:00:00.000Z',
+        id: 'msg-2',
+      });
     });
   });
 
