@@ -234,6 +234,35 @@ describe('updated_at trigger', () => {
   });
 });
 
+describe('supabase_realtime publication (Step 18)', () => {
+  it('includes conversations, messages, and agent_jobs', async () => {
+    const { rows } = await client.query(`
+      SELECT tablename
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public';
+    `);
+    const tables = rows.map((r: { tablename: string }) => r.tablename);
+    expect(tables).toContain('conversations');
+    expect(tables).toContain('messages');
+    expect(tables).toContain('agent_jobs');
+  });
+
+  it('does NOT use REPLICA IDENTITY FULL on chat tables', async () => {
+    const { rows } = await client.query(`
+      SELECT relname, relreplident
+      FROM pg_class
+      WHERE relname IN ('conversations', 'messages', 'agent_jobs')
+        AND relnamespace = 'public'::regnamespace;
+    `);
+    expect(rows).toHaveLength(3);
+    rows.forEach((row: { relreplident: string }) => {
+      // 'f' = REPLICA IDENTITY FULL; default ('d') keeps payloads minimal.
+      expect(row.relreplident).not.toBe('f');
+    });
+  });
+});
+
 describe('agent_jobs Step 16 orchestration columns', () => {
   it('has attempt default 0 (executions claimed, not creation count)', async () => {
     const { rows } = await client.query(`
