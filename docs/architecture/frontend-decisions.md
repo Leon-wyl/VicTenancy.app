@@ -10,7 +10,7 @@ component organization and UI primitives, not a source to copy wholesale.
 
 ## Product and visual direction
 
-VicTenancy is presented as a premium AI legal assistant for Australian renters:
+VicTenancy is presented as a premium AI legal assistant for Victorian renters:
 
 > A polished AI legal assistant combining cinematic product design with
 > grounded, readable legal information.
@@ -70,7 +70,7 @@ The Hero uses:
 
 The CodeNest copy is replaced with tenancy-specific messaging:
 
-- Eyebrow: `AUSTRALIAN TENANCY LAW`
+- Eyebrow: `VICTORIAN TENANCY LAW`
 - Headline: `KNOW YOUR RIGHTS. RENT WITH CONFIDENCE.`
 - CTA: `Ask your first question`
 - Trust-card message: `Guidance grounded in legislation`
@@ -216,4 +216,3 @@ animation foundation for Step 18. It does not authorize changes to:
 - Realtime subscriptions, message streaming, citations, or uploads.
 - Frontend deployment and E2E release governance planned for later roadmap
   steps.
-

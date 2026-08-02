@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #070b0a;
+  --mint: #5ed29c;
+  --forest: #0e241c;
+  --cyan-muted: #79a8a0;
+  --warm-white: #faf9f6;
+  --soft-gray: #e9e7e1;
+  --ink-60: rgba(255, 255, 255, 0.6);
+  --ink-40: rgba(255, 255, 255, 0.4);
+  --line-dark: rgba(255, 255, 255, 0.08);
+  --line-light: rgba(7, 11, 10, 0.1);
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-mint: var(--mint);
+  --color-forest: var(--forest);
+  --color-cyan-muted: var(--cyan-muted);
+  --color-warm-white: var(--warm-white);
+  --color-soft-gray: var(--soft-gray);
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-instrument), Georgia, serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--warm-white);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: var(--mint);
+  color: var(--ink);
+}
+
+:focus-visible {
+  outline: 2px solid var(--mint);
+  outline-offset: 3px;
+}
+
+/* Trust card — luminosity glass with gradient border frame */
+.trust-card {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+}
+
+.trust-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45),
+    rgba(255, 255, 255, 0.08)
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
