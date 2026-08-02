@@ -276,6 +276,7 @@ resource "aws_lambda_function" "dispatcher" {
   memory_size                    = 512
   timeout                        = 60
   reserved_concurrent_executions = -1
+  kms_key_arn                    = data.aws_kms_key.lambda.arn
   publish                        = true
   image_config {
     command = ["dist/dispatcher.handler"]
@@ -300,6 +301,7 @@ resource "aws_lambda_function" "worker" {
   memory_size                    = 512
   timeout                        = var.worker_timeout_seconds
   reserved_concurrent_executions = -1
+  kms_key_arn                    = data.aws_kms_key.lambda.arn
   publish                        = true
   image_config {
     command = ["dist/worker.handler"]
@@ -324,6 +326,7 @@ resource "aws_lambda_function" "terminalizer" {
   memory_size                    = 512
   timeout                        = var.terminalizer_timeout_seconds
   reserved_concurrent_executions = -1
+  kms_key_arn                    = data.aws_kms_key.lambda.arn
   publish                        = true
   image_config {
     command = ["dist/terminalizer.handler"]
