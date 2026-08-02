@@ -41,7 +41,7 @@ resource "aws_lambda_function" "api" {
   memory_size                    = var.memory_mb
   timeout                        = 28
   reserved_concurrent_executions = var.reserved_concurrency
-  kms_key_arn                    = data.aws_kms_key.lambda.arn
+  kms_key_arn                    = var.enable_kms_encryption ? data.aws_kms_key.lambda.arn : null
   publish                        = true
   environment { variables = local.lambda_env }
   tags       = var.tags
