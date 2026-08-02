@@ -29,10 +29,27 @@ export function HeroSection() {
       {/* Atmosphere */}
       <svg
         aria-hidden="true"
-        viewBox="0 0 100 100"
-        className="pointer-events-none absolute -right-40 top-1/3 h-[560px] w-[560px] opacity-30 blur-3xl"
+        viewBox="0 0 800 240"
+        className="pointer-events-none absolute left-1/2 top-24 h-[180px] w-[min(900px,110vw)] -translate-x-1/2 opacity-45"
       >
-        <ellipse cx="50" cy="50" rx="50" ry="38" fill="#12352a" />
+        <defs>
+          <filter id="hero-ellipse-blur" x="-20%" y="-80%" width="140%" height="260%">
+            <feGaussianBlur stdDeviation="25" />
+          </filter>
+          <linearGradient id="hero-ellipse-gradient" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stopColor="#12352a" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#79a8a0" stopOpacity="0.8" />
+            <stop offset="1" stopColor="#12352a" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <ellipse
+          cx="400"
+          cy="120"
+          rx="340"
+          ry="42"
+          fill="url(#hero-ellipse-gradient)"
+          filter="url(#hero-ellipse-blur)"
+        />
       </svg>
 
       {/* Content */}

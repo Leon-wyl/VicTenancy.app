@@ -21,7 +21,7 @@ export function HowItWorks() {
     <section
       id="how-it-works"
       aria-labelledby="how-it-works-heading"
-      className="bg-warm-white text-ink"
+      className="scroll-mt-20 bg-warm-white text-ink"
     >
       <div className="mx-auto max-w-6xl px-5 py-24 md:px-8 md:py-32">
         <p className="font-mono text-[11px] tracking-[0.22em] text-ink/45">

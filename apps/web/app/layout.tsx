@@ -46,6 +46,9 @@ export const metadata: Metadata = {
     locale: "en_AU",
     siteName: "VicTenancy",
   },
+  other: {
+    "theme-color": "#070b0a",
+  },
 };
 
 export default function RootLayout({

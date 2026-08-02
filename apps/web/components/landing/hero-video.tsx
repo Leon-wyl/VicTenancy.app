@@ -34,22 +34,29 @@ export function HeroVideo() {
 
     let hls: Hls | null = null;
 
+    const fallback = () => setStaticFrame(true);
+
     if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = STREAM_URL;
     } else if (Hls.isSupported()) {
       hls = new Hls({ enableWorker: false });
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) fallback();
+      });
       hls.loadSource(STREAM_URL);
       hls.attachMedia(video);
     } else {
-      setStaticFrame(true);
+      fallback();
       return;
     }
 
     const play = () => {
       video.play().catch(() => {
-        setStaticFrame(true);
+        fallback();
       });
     };
+
+    video.addEventListener("error", fallback);
 
     if (video.readyState >= 2) {
       play();
@@ -59,6 +66,7 @@ export function HeroVideo() {
 
     return () => {
       video.removeEventListener("canplay", play);
+      video.removeEventListener("error", fallback);
       hls?.destroy();
       video.removeAttribute("src");
       video.load();

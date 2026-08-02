@@ -24,26 +24,26 @@ export function LandingMotion({
           defaults: { ease: "power3.out" },
         });
 
-        tl.from('[data-anim="card"]', { y: 32, opacity: 0, duration: 0.9 }, 0.15)
+        tl.from('[data-anim="card"]', { y: 32, opacity: 0, duration: 0.7 }, 0.1)
           .from(
             '[data-anim="eyebrow"]',
-            { y: 18, opacity: 0, duration: 0.6 },
-            "-=0.55",
-          )
-          .from(
-            '[data-anim="headline"]',
-            { y: 34, opacity: 0, duration: 0.9, ease: "power2.out" },
+            { y: 18, opacity: 0, duration: 0.45 },
             "-=0.4",
           )
           .from(
+            '[data-anim="headline"]',
+            { y: 34, opacity: 0, duration: 0.7, ease: "power2.out" },
+            "-=0.3",
+          )
+          .from(
             '[data-anim="description"]',
-            { y: 22, opacity: 0, duration: 0.7 },
-            "-=0.55",
+            { y: 22, opacity: 0, duration: 0.5 },
+            "-=0.4",
           )
           .from(
             '[data-anim="ctas"] > *',
-            { y: 18, opacity: 0, duration: 0.55, stagger: 0.07 },
-            "-=0.45",
+            { y: 18, opacity: 0, duration: 0.4, stagger: 0.07 },
+            "-=0.3",
           );
       });
 

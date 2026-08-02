@@ -8,7 +8,7 @@ export function LandingMark({
   inverted?: boolean;
 }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5", className)}>
+    <span className={cn("flex items-center gap-2.5", className)}>
       <svg
         width="26"
         height="26"
