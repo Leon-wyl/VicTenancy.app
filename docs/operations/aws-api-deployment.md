@@ -89,8 +89,19 @@ In GitHub repo Settings → Environments, for both `staging` and `production`, s
 | `AWS_DEPLOY_ROLE_ARN` | Staging or production deploy role ARN |
 | `SUPABASE_PROJECT_REF` | Staging or production Supabase project ref |
 | `SUPABASE_PUBLISHABLE_KEY` | Staging or production Supabase anon key |
+| `CORS_ORIGINS` | Comma-separated browser origins the API CORS allow-list accepts (see below) |
 | `GITHUB_ORG` | GitHub organization or user name |
 | `GITHUB_REPO` | `VicTenancy.app` |
+
+Expected `CORS_ORIGINS` values:
+
+| Environment | `CORS_ORIGINS` |
+|---|---|
+| staging | `http://localhost:3000,https://staging.victenancy.com` |
+| production | `http://localhost:3000,https://victenancy.com,https://www.victenancy.com` |
+
+The local origin is retained for operational/local testing. Preserve exact-origin
+matching; do not use wildcards or `*.vercel.app`.
 
 ## Deployment Workflows
 
@@ -158,6 +169,7 @@ SUPABASE_PUBLISHABLE_KEY=<anon-key>
 SUPABASE_JWT_ISSUER=https://<PROJECT_REF>.supabase.co/auth/v1
 SUPABASE_JWT_AUDIENCE=authenticated
 RUNTIME_SECRET_ARN=<secret-arn>
+CORS_ORIGINS=<comma-separated allowed browser origins>
 ```
 
 ### Fetched from Secrets Manager at Cold Start
@@ -197,7 +209,9 @@ Retention: 30 days. Deletion protection: enabled.
 
 ## Deferred Scope
 
-- CORS origins (deferred to Step 20 — frontend deployment)
+- CORS origins: `CORS_ORIGINS` is now deployment configuration supplied to the
+  deployed Lambda via Terraform; Vercel frontend deployment and its DNS records
+  remain deferred to Step 20
 - Agent invocation (deferred to Step 16)
 - Queues, async jobs, streaming (deferred to Step 16)
 - Observability dashboards (deferred to Step 18a/21)
@@ -207,6 +221,7 @@ Retention: 30 days. Deletion protection: enabled.
 ## Related Documents
 
 - [Managed Supabase Environments](managed-supabase.md)
+- [Frontend Release Governance](frontend-release-governance.md)
 - [Application Boundaries](../architecture/application-boundaries.md)
 - [Application API Reference](../api/application-api.md)
 - [Local Development Environment](../development/local-environment.md)

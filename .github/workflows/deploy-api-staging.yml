@@ -44,10 +44,21 @@ jobs:
       TF_VAR_agent_runtime_mode: ${{ vars.AGENT_RUNTIME_MODE }}
       TF_VAR_agent_runtime_invoke_url: ${{ vars.AGENT_RUNTIME_INVOKE_URL }}
       TF_VAR_agent_runtime_execute_api_arn: ${{ vars.AGENT_RUNTIME_EXECUTE_API_ARN }}
+      TF_VAR_cors_origins: ${{ vars.CORS_ORIGINS }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Validate deployment inputs
+        env:
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CORS_ORIGINS:-}" ]; then
+            echo "::error::CORS_ORIGINS is not configured in the staging GitHub environment"
+            exit 1
+          fi
 
       - name: Debug OIDC claims
         run: |
