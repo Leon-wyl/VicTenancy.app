@@ -80,3 +80,21 @@ export function decodeMessageCursor(cursor: string): MessageCursorData {
   validateTimestamp(data.createdAt);
   return { createdAt: data.createdAt, id: data.id };
 }
+
+export interface JobCursorData {
+  createdAt: string;
+  id: string;
+}
+
+export function decodeJobCursor(cursor: string): JobCursorData {
+  const data = decodeCursor(cursor);
+  const keys = Object.keys(data);
+  if (keys.length !== 2 || !data.createdAt || !data.id) {
+    throw new BadRequestException('Invalid or malformed cursor');
+  }
+  if (!UUID_RE.test(data.id)) {
+    throw new BadRequestException('Invalid or malformed cursor');
+  }
+  validateTimestamp(data.createdAt);
+  return { createdAt: data.createdAt, id: data.id };
+}
