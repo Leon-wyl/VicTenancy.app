@@ -7,7 +7,7 @@ import { useChat } from "./chat-provider";
 import { mapJobRow, mapMessageRow } from "./mappers";
 import { isActiveJob } from "./state";
 
-const POLL_INTERVAL_MS = 10_000;
+const POLL_INTERVAL_MS = 5_000;
 const BACKOFF_BASE_MS = 1_000;
 const BACKOFF_MAX_MS = 30_000;
 
@@ -48,8 +48,12 @@ function classifyConversationError(error: unknown): ConversationRealtimeError | 
  *    component unmounted (`cancelled`); results apply only to state keyed by
  *    this conversation, so an old in-flight request can never overwrite a
  *    newer conversation's state.
- *  - Polling fallback only while Realtime is down AND this conversation has
- *    non-terminal jobs; bounded interval; stops at terminal.
+ *  - While this conversation has a non-terminal job, a bounded API
+ *    reconciliation runs in the background even if Realtime reports
+ *    SUBSCRIBED. A channel can be connected while publication/RLS delivery is
+ *    misconfigured, so connection status alone is not evidence that every row
+ *    change reached the browser. Polling stops as soon as every job is
+ *    terminal; Realtime remains the low-latency path.
  */
 export function useConversationRealtime(
   conversationId: string | null,
@@ -89,7 +93,6 @@ export function useConversationRealtime(
     const activeConversationId = conversationId;
 
     let cancelled = false;
-    let realtimeDown = false;
     let refetchInFlight = false;
     let refetchPending = false;
     let backoffMs = BACKOFF_BASE_MS;
@@ -185,7 +188,6 @@ export function useConversationRealtime(
       .subscribe((status) => {
         if (cancelled) return;
         if (status === "SUBSCRIBED") {
-          realtimeDown = false;
           // Forced reconciliation after subscribing (not before). Not counted
           // as recovery — backoff state is untouched here.
           void hydrateRef.current(activeConversationId)
@@ -199,17 +201,15 @@ export function useConversationRealtime(
                 setError(terminalError);
                 return;
               }
-              realtimeDown = true;
               void recover();
             });
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
-          realtimeDown = true;
           void recover();
         }
       });
 
     const poll = setInterval(() => {
-      if (cancelled || !realtimeDown) return;
+      if (cancelled) return;
       if (!jobsRef.current.some(isActiveJob)) return;
       void recover();
     }, POLL_INTERVAL_MS);
