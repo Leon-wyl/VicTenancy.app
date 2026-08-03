@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   INestApplication,
+  Post,
 } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import request from 'supertest';
@@ -38,6 +39,11 @@ class TestErrorController {
 class TestProtectedController {
   @Get()
   ok() {
+    return { ok: true };
+  }
+
+  @Post()
+  create() {
     return { ok: true };
   }
 }
@@ -125,7 +131,7 @@ describe('HTTP pipeline (X-Request-Id, auth, quota, error handling)', () => {
       expect(getXRequestId(res)).toMatch(UUID_RE);
     });
 
-    it('sets X-Request-Id on 429 (rate limited)', async () => {
+    it('sets X-Request-Id on 429 (rate limited write)', async () => {
       mockAuthService.verifyToken.mockResolvedValue(PRINCIPAL);
       mockQuotaService.consume.mockResolvedValue({
         allowed: false,
@@ -135,7 +141,7 @@ describe('HTTP pipeline (X-Request-Id, auth, quota, error handling)', () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get('/test-protected')
+        .post('/test-protected')
         .set('Authorization', 'Bearer valid.token');
 
       expect(res.status).toBe(429);
@@ -223,8 +229,19 @@ describe('HTTP pipeline (X-Request-Id, auth, quota, error handling)', () => {
     });
   });
 
-  describe('quota guard: authenticated routes consume quota', () => {
-    it('consumes quota for authenticated request', async () => {
+  describe('quota guard: authenticated write routes consume quota', () => {
+    it('does not consume quota for authenticated reads', async () => {
+      mockAuthService.verifyToken.mockResolvedValue(PRINCIPAL);
+
+      const res = await request(app.getHttpServer())
+        .get('/test-protected')
+        .set('Authorization', 'Bearer valid.token');
+
+      expect(res.status).toBe(200);
+      expect(mockQuotaService.consume).not.toHaveBeenCalled();
+    });
+
+    it('consumes quota for authenticated write requests', async () => {
       mockAuthService.verifyToken.mockResolvedValue(PRINCIPAL);
       mockQuotaService.consume.mockResolvedValue({
         allowed: true,
@@ -234,10 +251,10 @@ describe('HTTP pipeline (X-Request-Id, auth, quota, error handling)', () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get('/test-protected')
+        .post('/test-protected')
         .set('Authorization', 'Bearer valid.token');
 
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(201);
       expect(mockQuotaService.consume).toHaveBeenCalledWith(PRINCIPAL.sub);
     });
 
@@ -271,7 +288,7 @@ describe('HTTP pipeline (X-Request-Id, auth, quota, error handling)', () => {
       });
 
       const res = await request(app.getHttpServer())
-        .get('/test-protected')
+        .post('/test-protected')
         .set('Authorization', 'Bearer valid.token');
 
       expect(res.status).toBe(429);

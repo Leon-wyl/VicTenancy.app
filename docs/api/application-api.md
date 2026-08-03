@@ -24,7 +24,7 @@ not VicTenancy application API routes and are not reimplemented by NestJS.
 | Versioning | All business routes under `/v1` |
 | Content-Type | `application/json` |
 | Body Limit | 16 KiB (413 on overflow) |
-| Quota | 20 req/min, 200 req/day per user (429 + `Retry-After` header) |
+| Write quota | 20 req/min, 200 req/day per user for authenticated state-changing requests (429 + `Retry-After` header) |
 | Validation | Strict DTO validation (400 for invalid input) |
 | Correlation | `X-Request-Id` echoed in every response |
 | Idempotency | Message creation requires `Idempotency-Key` (UUID) header |
