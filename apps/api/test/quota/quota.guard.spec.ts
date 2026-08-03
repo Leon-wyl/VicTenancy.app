@@ -6,9 +6,12 @@ import { QuotaService } from '../../src/common/quota/quota.service';
 import type { Principal } from '../../src/common/auth/principal';
 import type { Response } from 'express';
 
-function createMockContext(user?: Principal): ExecutionContext {
+function createMockContext(
+  user?: Principal,
+  method = 'POST',
+): ExecutionContext {
   const setHeader = jest.fn();
-  const request = { user };
+  const request = { user, method };
   const response = { setHeader } as unknown as Response;
   const handler = jest.fn();
   const context = {
@@ -79,6 +82,18 @@ describe('QuotaGuard', () => {
       await expect(guard.canActivate(ctx)).resolves.toBe(true);
       expect(quotaService.consume).not.toHaveBeenCalled();
     });
+  });
+
+  describe('safe methods', () => {
+    it.each(['GET', 'HEAD', 'OPTIONS'])(
+      'does not consume quota for %s requests',
+      async (method) => {
+        const ctx = createMockContext(principal, method);
+
+        await expect(guard.canActivate(ctx)).resolves.toBe(true);
+        expect(quotaService.consume).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('quota consumption', () => {
