@@ -67,7 +67,7 @@ operations.
 
 | Control | Default | Description |
 |---|---|---|
-| Request quotas | 20/min, 200/day per user | Per-user atomic PostgreSQL quota counters with advisory locks; 429 + Retry-After on denial |
+| Write quotas | 20/min, 200/day per user | Per-user atomic PostgreSQL quota counters with advisory locks; applied to authenticated state-changing requests; 429 + Retry-After on denial |
 | Correlation ID | `X-Request-Id` header | Valid client UUIDs preserved; missing/invalid regenerated; propagated on all responses including errors |
 | Body size | 16 KiB max | JSON and URL-encoded; 413 on oversized bodies |
 | Request timeout | 30 seconds | Node `requestTimeout`; streaming/Agent endpoints will need explicit overrides |

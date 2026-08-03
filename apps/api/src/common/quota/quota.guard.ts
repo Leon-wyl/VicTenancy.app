@@ -22,6 +22,18 @@ export class QuotaGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
+
+    // The chat UI uses several idempotent read endpoints for its initial
+    // hydration and Realtime reconciliation. Charging those reads to the same
+    // small budget as writes can prevent a user from loading their own history
+    // before they have performed any costly action. This guard deliberately
+    // protects state changes (in particular message submission, which creates
+    // an agent job); read traffic is deliberately not charged to this
+    // per-user write budget.
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      return true;
+    }
+
     const principal = request.user as Principal | undefined;
 
     if (!principal?.sub) {
